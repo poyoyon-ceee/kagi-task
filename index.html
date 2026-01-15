@@ -1,48 +1,505 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>kagi-task</title>
-    <!-- Google Fonts (オンライン) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KeyExchange Manager (Dev Preview)</title>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/main.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #63B3ED;
+            --accent-color: #F5A623;
+            --success-color: #48BB78;
+            --danger-color: #F56565;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
+            --shadow-glass: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding-bottom: 80px;
+        }
+
+        .preview-banner {
+            background: var(--accent-color);
+            color: white;
+            text-align: center;
+            font-size: 0.8rem;
+            padding: 4px;
+            font-weight: 600;
+        }
+
+        .app-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 1rem 0;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .app-title {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0;
+            font-size: 1.25rem;
+            background: linear-gradient(90deg, #4A90E2, #63B3ED);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .version-tag {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        .nav-pills {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 9px;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            padding: 8px 15px;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #fff;
+            color: var(--primary-color);
+            box-shadow: var(--shadow-glass);
+        }
+
+        .task-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .task-card:active {
+            transform: scale(0.98);
+        }
+
+        .task-card-body {
+            padding: 1.25rem;
+        }
+
+        .task-status-indicator {
+            width: 4px;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .status-new {
+            background-color: var(--primary-color);
+        }
+
+        .status-progress {
+            background-color: var(--accent-color);
+        }
+
+        .status-done {
+            background-color: var(--success-color);
+        }
+
+        .task-address {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .task-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+            padding: 0.75rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .btn-save {
+            background: linear-gradient(90deg, #4A90E2, #63B3ED);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--glass-border);
+        }
+
+        .login-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(74, 144, 226, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        .list-enter-active,
+        .list-leave-active {
+            transition: all 0.4s ease;
+        }
+
+        .list-enter-from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .list-leave-to {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>kagi-task</h1>
-        <p>オンラインアプリのテンプレートです。</p>
-        
-        <div id="app">
-            <!-- ここにコンテンツを追加してください -->
+    <div class="preview-banner">テストプレビューモード (ダミーデータ表示中)</div>
+
+    <div id="app">
+
+        <transition name="fade">
+            <div v-if="isLoading" class="loading-overlay">
+                <div class="spinner"></div>
+                <p class="mt-2 text-muted small">Loading...</p>
+            </div>
+        </transition>
+
+        <div v-if="!isAuthenticated" class="container">
+            <div class="login-container">
+                <div class="login-icon">🔑</div>
+                <h3 class="fw-bold mb-4">KeyExchange Login</h3>
+                <p class="text-muted small mb-4">進捗管理システムへアクセスするにはパスワードを入力してください。</p>
+                <input type="password" v-model="inputPass" class="form-control mb-3 text-center" placeholder="Password"
+                    @keyup.enter="login">
+                <button @click="login" class="btn btn-save w-100 py-3">Login</button>
+                <div class="mt-4 version-tag text-center">dev1.0.0.20260115.3</div>
+            </div>
+        </div>
+
+        <div v-else>
+            <header class="app-header">
+                <div class="container d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="app-title">KeyExchange</h1>
+                        <span class="version-tag">dev1.0.0.20260115.3</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="refreshData">
+                        更新
+                    </button>
+                </div>
+            </header>
+
+            <main class="container mt-4">
+                <ul class="nav nav-pills nav-fill">
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{active: currentTab === 'new'}" @click="currentTab = 'new'"
+                            href="javascript:void(0)">新規</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{active: currentTab === 'progress'}"
+                            @click="currentTab = 'progress'" href="javascript:void(0)">進行中</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" :class="{active: currentTab === 'done'}" @click="currentTab = 'done'"
+                            href="javascript:void(0)">完了</a>
+                    </li>
+                </ul>
+
+                <div class="task-list">
+                    <transition-group name="list">
+                        <div v-for="item in filteredItems" :key="item.id" class="task-card" @click="openModal(item)">
+                            <div class="task-status-indicator" :class="'status-' + currentTab"></div>
+                            <div class="task-card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-dark rounded-pill px-3">{{ item.district }}</span>
+                                    <span class="small text-muted">#{{ item.receptionNo }}</span>
+                                </div>
+                                <strong class="task-address">{{ item.address }} {{ item.roomNo }}</strong>
+                                <div class="task-meta">
+                                    <div class="meta-item">📅 期限: {{ item.dueDate }}</div>
+                                    <div class="meta-item">👤 担当: {{ item.pic || '未設定' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </transition-group>
+
+                    <div v-if="filteredItems.length === 0" class="text-center py-5 text-muted">
+                        <p>対象の案件はありません</p>
+                    </div>
+                </div>
+            </main>
+
+            <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content" v-if="editingItem">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">案件詳細・編集</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-4">
+                                <h6 class="text-muted small mb-1">【基本情報】</h6>
+                                <div class="fw-bold fs-5">{{ editingItem.address }} {{ editingItem.roomNo }}</div>
+                                <div class="small text-muted">{{ editingItem.district }} / 受付No: {{
+                                    editingItem.receptionNo }}</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">岡本受取日</label>
+                                <input type="date" v-model="form.okamotoDate" class="form-control">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">完了受付者</label>
+                                <select v-model="form.pic" class="form-select">
+                                    <option value="">選択してください</option>
+                                    <option value="岡本">岡本</option>
+                                    <option value="作業員A">作業員A</option>
+                                    <option value="作業員B">作業員B</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">完了報告日</label>
+                                <input type="date" v-model="form.completeDate" class="form-control">
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button class="btn btn-save py-3" @click="saveChanges" :disabled="isSaving">
+                                    <span v-if="isSaving" class="spinner-border spinner-border-sm me-2"></span>
+                                    変更を保存する
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- スクリプト -->
-    <script src="src/core/event-bus.js"><\/script>
-    <script src="src/core/state-manager.js"><\/script>
-    <script src="src/utils/sanitizer.js"><\/script>
-    <script src="src/utils/migration.js"><\/script>
-    <script src="src/utils/config.js"><\/script>
-    <script src="src/utils/diff.js"><\/script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // アプリケーション初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('✅ アプリケーション起動');
-            
-            // EventBusが利用可能な場合
-            if (window.EventBus) {
-                console.log('✅ EventBus 利用可能');
+        const { createApp } = Vue;
+        let modalInstance = null;
+
+        // --- 2重起動防止 (Single Instance) ロジック ---
+        const INSTANCE_ID = 'kagi_task_single_instance';
+        const bc = new BroadcastChannel(INSTANCE_ID);
+
+        // 他のタブから「起動した」という通知を受け取った場合、自分が既に開いていれば応答する
+        bc.onmessage = (event) => {
+            if (event.data.type === 'QUERY_INSTANCE') {
+                bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260115.2' });
             }
-            
-            // StateManagerが利用可能な場合
-            if (window.StateManager) {
-                console.log('✅ StateManager 利用可能');
+        };
+
+        createApp({
+            data() {
+                return {
+                    isAuthenticated: false,
+                    inputPass: '',
+                    passCode: 'key1234',
+                    currentTab: 'new',
+                    items: [],
+                    isLoading: false,
+                    isSaving: false,
+                    editingItem: null,
+                    form: { okamotoDate: '', pic: '', completeDate: '' }
+                }
+            },
+            computed: {
+                filteredItems() {
+                    return this.items.filter(item => {
+                        let status = 'new';
+                        if (item.completeDate) status = 'done';
+                        else if (item.okamotoDate) status = 'progress';
+                        return status === this.currentTab;
+                    });
+                }
+            },
+            mounted() {
+                // 起動時に他のインスタンスに問い合わせ
+                bc.postMessage({ type: 'QUERY_INSTANCE' });
+
+                // 他のインスタンスから応答があった場合
+                bc.onmessage = (event) => {
+                    // 他のタブから問い合わせが来た場合
+                    if (event.data.type === 'QUERY_INSTANCE') {
+                        bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260115.2' });
+                    }
+                    // 他のタブが既に存在するという応答が来た場合
+                    else if (event.data.type === 'INSTANCE_EXISTS') {
+                        console.log('Detected another instance');
+                    }
+                };
+
+                if (sessionStorage.getItem('isKagiAuth') === 'true') {
+                    this.isAuthenticated = true;
+                    this.loadData();
+                }
+            },
+            methods: {
+                login() {
+                    if (this.inputPass === this.passCode) {
+                        this.isAuthenticated = true;
+                        sessionStorage.setItem('isKagiAuth', 'true');
+                        this.loadData();
+                    } else {
+                        alert('パスワードが正しくありません');
+                    }
+                },
+                refreshData() { this.loadData(); },
+                loadData() {
+                    this.isLoading = true;
+                    // ローカル用ダミーデータ
+                    setTimeout(() => {
+                        this.items = [
+                            { id: '1', receptionNo: '001', district: '渋谷', address: '道玄坂1-1', roomNo: '101', dueDate: '2026-01-20', okamotoDate: '', completeDate: '', pic: '' },
+                            { id: '2', receptionNo: '002', district: '新宿', address: '歌舞伎町2-2', roomNo: '202', dueDate: '2026-01-21', okamotoDate: '2026-01-15', completeDate: '', pic: '岡本' },
+                            { id: '3', receptionNo: '003', district: '池袋', address: '東池袋3-3', roomNo: '303', dueDate: '2026-01-22', okamotoDate: '2026-01-14', completeDate: '2026-01-15', pic: '作業員A' }
+                        ];
+                        this.isLoading = false;
+                    }, 800);
+                },
+                openModal(item) {
+                    this.editingItem = JSON.parse(JSON.stringify(item));
+                    this.form = { okamotoDate: item.okamotoDate || '', pic: item.pic || '', completeDate: item.completeDate || '' };
+                    if (!modalInstance) modalInstance = new bootstrap.Modal(document.getElementById('editModal'));
+                    modalInstance.show();
+                },
+                saveChanges() {
+                    this.isSaving = true;
+                    setTimeout(() => {
+                        const idx = this.items.findIndex(it => it.id === this.editingItem.id);
+                        if (idx !== -1) this.items[idx] = { ...this.items[idx], ...this.form };
+                        modalInstance.hide();
+                        this.isSaving = false;
+                    }, 800);
+                }
             }
-        });
-    <\/script>
+        }).mount('#app');
+    </script>
 </body>
+
 </html>

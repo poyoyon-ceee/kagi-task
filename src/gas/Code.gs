@@ -1,9 +1,9 @@
 /**
  * 鍵交換進捗管理システム - バックエンド (Google Apps Script)
- * Version: dev1.0.0.20260115.1
+ * Version: dev1.0.0.20260115.3
  */
 
-const SHEET_ID = ''; // スプレッドシートIDをここに入力
+const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 
 /**
