@@ -1,510 +1,448 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KeyExchange Manager</title>
-  
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-  
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
   <style>
-    :root {
-      --primary-color: #4A90E2;
-      --secondary-color: #63B3ED;
-      --accent-color: #F5A623;
-      --success-color: #48BB78;
-      --danger-color: #F56565;
-      --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --glass-bg: rgba(255, 255, 255, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.4);
-      --text-main: #2D3748;
-      --text-muted: #718096;
-      --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
-      --shadow-glass: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
     body {
-      font-family: 'Outfit', 'Noto Sans JP', sans-serif;
-      background: var(--bg-gradient);
-      background-attachment: fixed;
-      min-height: 100vh;
-      color: var(--text-main);
-      padding-bottom: 80px;
+      background: #f0f2f5;
+      font-family: sans-serif;
+      padding-bottom: 100px;
     }
 
-    /* Glassmorphism Header */
     .app-header {
-      background: var(--glass-bg);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--glass-border);
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 12px 0;
       position: sticky;
       top: 0;
-      z-index: 1000;
-      padding: 1rem 0;
-      box-shadow: var(--shadow-soft);
+      z-index: 100;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
 
-    .app-title {
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin: 0;
-      font-size: 1.25rem;
-      background: linear-gradient(90deg, #4A90E2, #63B3ED);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .version-tag {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      margin-left: 8px;
-    }
-
-    /* Tab Layout */
     .nav-pills {
-      background: rgba(255, 255, 255, 0.4);
+      margin: 15px 0;
+      background: #fff;
       padding: 5px;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-      border: 1px solid var(--glass-border);
+      border-radius: 8px;
     }
 
-    .nav-pills .nav-link {
-      border-radius: 9px;
-      color: var(--text-muted);
-      font-weight: 500;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
-      padding: 8px 15px;
-    }
-
-    .nav-pills .nav-link.active {
-      background-color: #fff;
-      color: var(--primary-color);
-      box-shadow: var(--shadow-glass);
-    }
-
-    /* Cards */
     .task-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(5px);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      margin-bottom: 1rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    .task-card:active {
-      transform: scale(0.98);
-    }
-
-    .task-card-body {
-      padding: 1.25rem;
-    }
-
-    .task-status-indicator {
-      width: 4px;
-      height: 100%;
-      position: absolute;
-      left: 0;
-      top: 0;
-    }
-
-    .status-new { background-color: var(--primary-color); }
-    .status-progress { background-color: var(--accent-color); }
-    .status-done { background-color: var(--success-color); }
-
-    .task-address {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
-      display: block;
-    }
-
-    .task-meta {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Modal Styling */
-    .modal-content {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-    }
-
-    .modal-header {
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      padding: 1.5rem;
-    }
-
-    .modal-body {
-      padding: 1.5rem;
-    }
-
-    .form-control, .form-select {
-      border-radius: 10px;
-      padding: 0.75rem;
-      border: 1px solid rgba(0,0,0,0.1);
-      background: rgba(255,255,255,0.8);
-    }
-
-    .btn-save {
-      background: linear-gradient(90deg, #4A90E2, #63B3ED);
-      border: none;
+      background: #fff;
       border-radius: 12px;
-      padding: 0.75rem;
-      font-weight: 600;
-      color: white;
-      box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+      padding: 15px;
+      margin-bottom: 10px;
+      border: 1px solid #eee;
+      border-left-width: 6px;
+      cursor: pointer;
     }
 
-    /* Login Screen */
-    .login-container {
-      max-width: 400px;
-      margin: 100px auto;
-      text-align: center;
-      padding: 2rem;
-      background: var(--card-bg);
-      border-radius: 24px;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid var(--glass-border);
+    .status-new {
+      border-left-color: #007bff;
     }
 
-    .login-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      color: var(--primary-color);
+    .status-progress {
+      border-left-color: #ffc107;
     }
 
-    /* Loading Overlay */
-    .loading-overlay {
+    .status-done {
+      border-left-color: #28a745;
+    }
+
+    .btn-fab {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(5px);
-      z-index: 2000;
+      bottom: 25px;
+      right: 25px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      border: none;
+      font-size: 30px;
+      box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+      z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
     }
 
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(74, 144, 226, 0.1);
-      border-left-color: var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    .sort-select {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      font-size: 0.85rem;
+      border-radius: 20px;
+      padding: 5px 15px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .key-info-box {
+      background: #fff;
+      border-radius: 8px;
+      padding: 15px 10px;
+      margin-bottom: 20px;
+      border: 2px solid #dee2e6;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
-    /* Animations */
-    .fade-enter-active, .fade-leave-active {
-      transition: opacity 0.3s ease;
-    }
-    .fade-enter-from, .fade-leave-to {
-      opacity: 0;
-    }
-
-    .list-enter-active, .list-leave-active {
-      transition: all 0.4s ease;
-    }
-    .list-enter-from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    .list-leave-to {
-      opacity: 0;
-      transform: scale(0.9);
+    .key-label {
+      font-size: 0.8rem;
+      color: #666;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
     }
 
+    .key-value {
+      font-weight: 900;
+      font-size: 1.6rem;
+      color: #000 !important;
+      line-height: 1;
+    }
+
+    .list-key-info {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 6px 0;
+      margin-top: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #eee;
+    }
+
+    .list-label {
+      font-size: 0.7rem;
+      color: #888;
+      display: block;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .list-val {
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #333;
+    }
   </style>
 </head>
+
 <body>
-
   <div id="app">
-    
-    <!-- Loading Overlay -->
-    <transition name="fade">
-      <div v-if="isLoading" class="loading-overlay">
-        <div class="spinner"></div>
-        <p class="mt-2 text-muted small">Loading...</p>
-      </div>
-    </transition>
-
-    <!-- Login Screen -->
-    <div v-if="!isAuthenticated" class="container">
-      <div class="login-container">
-        <div class="login-icon">🔑</div>
-        <h3 class="fw-bold mb-4">KeyExchange Login</h3>
-        <p class="text-muted small mb-4">進捗管理システムへアクセスするにはパスワードを入力してください。</p>
-        <input type="password" v-model="inputPass" class="form-control mb-3 text-center" placeholder="Password" @keyup.enter="login">
-        <button @click="login" class="btn btn-save w-100 py-3">Login</button>
-        <div class="mt-4 version-tag text-center">dev1.0.0.20260115.1</div>
-      </div>
+    <div v-if="isSyncing"
+      style="position:fixed; top:0; left:0; width:100%; height:3px; background:#007bff; z-index:2000; animation: pulse 1.5s infinite;">
+    </div>
+    <div v-if="isLoading" class="text-center mt-5">
+      <div class="spinner-border text-primary"></div>
+      <p>読込中...</p>
     </div>
 
-    <!-- Main Content -->
     <div v-else>
       <header class="app-header">
         <div class="container d-flex justify-content-between align-items-center">
-          <div>
-            <h1 class="app-title">KeyExchange</h1>
-            <span class="version-tag">dev1.0.0.20260115.1</span>
-          </div>
-          <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i> 更新
-          </button>
+          <h5 class="mb-0 fw-bold">鍵取替管理</h5>
+          <button class="btn btn-sm btn-outline-primary rounded-pill" @click="loadData">更新</button>
         </div>
       </header>
 
-      <main class="container mt-4">
-        
-        <!-- Tabs -->
+      <div class="container">
         <ul class="nav nav-pills nav-fill">
-          <li class="nav-item">
-            <a class="nav-link" :class="{active: currentTab === 'new'}" @click="currentTab = 'new'" href="javascript:void(0)">新規</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" :class="{active: currentTab === 'progress'}" @click="currentTab = 'progress'" href="javascript:void(0)">進行中</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" :class="{active: currentTab === 'done'}" @click="currentTab = 'done'" href="javascript:void(0)">完了</a>
+          <li v-for="tab in ['new', 'progress', 'done']" :key="tab" class="nav-item">
+            <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
+              href="javascript:void(0)">
+              {{ tab === 'new' ? '新規' : tab === 'progress' ? '進行中' : '完了' }}
+            </a>
           </li>
         </ul>
 
-        <!-- Task List -->
-        <div class="task-list">
-          <transition-group name="list">
-            <div v-for="item in filteredItems" :key="item.id" class="task-card position-relative" @click="openModal(item)">
-              <div class="task-status-indicator" :class="'status-' + currentTab"></div>
-              <div class="task-card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                  <span class="badge bg-light text-dark rounded-pill px-3">{{ item.district }}</span>
-                  <span class="small text-muted">#{{ item.receptionNo }}</span>
-                </div>
-                <strong class="task-address">{{ item.address }} {{ item.roomNo }}</strong>
-                <div class="task-meta">
-                  <div class="meta-item">📅 期限: {{ item.dueDate }}</div>
-                  <div class="meta-item">👤 担当: {{ item.pic || '未設定' }}</div>
-                </div>
-              </div>
-            </div>
-          </transition-group>
-          
-          <div v-if="filteredItems.length === 0" class="text-center py-5 text-muted">
-            <p>対象の案件はありません</p>
+        <div class="d-flex justify-content-end mb-2 align-items-center">
+          <label class="small text-muted me-2">並び順:</label>
+          <select v-model="sortOption" class="form-select w-auto sort-select">
+            <option value="recDesc">受付No (新しい順)</option>
+            <option value="recAsc">受付No (古い順)</option>
+            <option value="district">地区順</option>
+          </select>
+        </div>
+
+        <div v-for="(item, index) in filteredItems" :key="item.id" class="task-card" :class="'status-'+currentTab"
+          @click="openEditModal(item)">
+          <div class="small text-muted mb-1">{{ item.district }} #{{ item.receptionNo }}</div>
+          <div class="fw-bold fs-5">{{ item.address }} {{ item.roomNo }}</div>
+
+          <div class="list-key-info row g-0 text-center">
+            <div class="col-3 border-end"><span class="list-label">玄関新</span><span class="list-val">{{
+                item.isNewEntrance }}</span></div>
+            <div class="col-3 border-end"><span class="list-label">玄関古</span><span class="list-val">{{
+                item.isUsedEntrance }}</span></div>
+            <div class="col-3 border-end"><span class="list-label">物置</span><span class="list-val">{{ item.storage
+                }}</span></div>
+            <div class="col-3"><span class="list-label">PS</span><span class="list-val">{{ item.ps }}</span></div>
+          </div>
+
+          <div class="small mt-2 text-muted text-end">
+            <span v-if="currentTab === 'done'">✅ 完了日: {{ item.completeDate }} / 👤 {{ item.pic }}</span>
+            <span v-else>📅 期限: {{ item.dueDate }} / 👤 {{ item.pic || '未設定' }}</span>
           </div>
         </div>
-      </main>
+        <div v-if="filteredItems.length === 0" class="text-center py-5 text-muted">案件はありません</div>
+      </div>
 
-      <!-- Edit Modal -->
-      <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+      <button class="btn-fab" @click="openAddModal">＋</button>
+
+      <!-- 新規登録 -->
+      <div class="modal fade" id="addModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content" v-if="editingItem">
+          <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title fw-bold">案件詳細・編集</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5>新規登録</h5><button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-              <div class="mb-4">
-                <h6 class="text-muted small mb-1">【基本情報】</h6>
-                <div class="fw-bold fs-5">{{ editingItem.address }} {{ editingItem.roomNo }}</div>
-                <div class="small text-muted">{{ editingItem.district }} / 受付No: {{ editingItem.receptionNo }}</div>
+              <label class="small fw-bold">地区</label>
+              <select v-model="newForm.district" class="form-select mb-2">
+                <option v-for="d in master.districts" :value="d">{{ d }}</option>
+              </select>
+              <label class="small fw-bold">対象住所</label><input type="text" v-model="newForm.address"
+                class="form-control mb-2">
+              <label class="small fw-bold">号室</label><input type="text" v-model="newForm.roomNo"
+                class="form-control mb-2">
+              <label class="small fw-bold">完了予定日</label><input type="date" v-model="newForm.dueDate"
+                class="form-control mb-3">
+
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <label class="small fw-bold">玄関新品</label>
+                  <select v-model="newForm.isNewEntrance" @change="onEntranceChange('new')" class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="small fw-bold">玄関中古</label>
+                  <select v-model="newForm.isUsedEntrance" @change="onEntranceChange('used')" class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select>
+                </div>
+                <div class="col-6"><label class="small fw-bold">物置</label><select v-model="newForm.storage"
+                    class="form-select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select></div>
+                <div class="col-6"><label class="small fw-bold">PS</label><select v-model="newForm.ps"
+                    class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select></div>
               </div>
 
-              <div class="mb-3">
-                <label class="form-label small fw-bold">岡本受取日</label>
-                <input type="date" v-model="form.okamotoDate" class="form-control">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label small fw-bold">完了受付者</label>
-                <select v-model="form.pic" class="form-select">
-                  <option value="">選択してください</option>
-                  <option value="岡本">岡本</option>
-                  <option value="作業員A">作業員A</option>
-                  <option value="作業員B">作業員B</option>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label small fw-bold">完了報告日</label>
-                <input type="date" v-model="form.completeDate" class="form-control">
-              </div>
-
-              <div class="d-grid mt-4">
-                <button class="btn btn-save py-3" @click="saveChanges" :disabled="isSaving">
-                  <span v-if="isSaving" class="spinner-border spinner-border-sm me-2"></span>
-                  変更を保存する
-                </button>
-              </div>
+              <button class="btn btn-primary w-100 py-3 mt-2" @click="saveNewItem">即座に登録</button>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- 編集・詳細モーダル -->
+      <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content" v-if="editingItem">
+            <div class="modal-header">
+              <h5 v-if="currentTab === 'done'">完了案件詳細</h5>
+              <h5 v-else>進捗更新</h5>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p class="fw-bold mb-3 fs-5">{{ editingItem.address }} {{ editingItem.roomNo }}</p>
+
+              <div class="key-info-box">
+                <div class="row text-center">
+                  <div class="col-3 border-end">
+                    <span class="key-label">玄関新</span>
+                    <span class="key-value">{{ editingItem.isNewEntrance }}</span>
+                  </div>
+                  <div class="col-3 border-end">
+                    <span class="key-label">玄関古</span>
+                    <span class="key-value">{{ editingItem.isUsedEntrance }}</span>
+                  </div>
+                  <div class="col-3 border-end">
+                    <span class="key-label">物置</span>
+                    <span class="key-value">{{ editingItem.storage }}</span>
+                  </div>
+                  <div class="col-3">
+                    <span class="key-label">PS</span>
+                    <span class="key-value">{{ editingItem.ps }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="currentTab === 'new'">
+                <label class="small fw-bold">MMS受取日</label>
+                <input type="date" v-model="editForm.okamotoDate" class="form-control mb-3">
+              </div>
+
+              <div v-if="currentTab === 'progress'">
+                <label class="small fw-bold text-danger">完了報告者 <span class="badge bg-danger">必須</span></label>
+                <select v-model="editForm.pic" class="form-select mb-3" :class="{'is-invalid': !editForm.pic}">
+                  <option value="">選択してください</option>
+                  <option v-for="p in master.staffs" :value="p">{{ p }}</option>
+                </select>
+                <label class="small fw-bold">完了報告日</label>
+                <input type="date" v-model="editForm.completeDate" class="form-control mb-3">
+              </div>
+
+              <div v-if="currentTab === 'done'">
+                <div class="mb-2"><span class="small text-muted">完了日:</span> <strong>{{ editingItem.completeDate
+                    }}</strong></div>
+                <div class="mb-2"><span class="small text-muted">担当者:</span> <strong>{{ editingItem.pic }}</strong>
+                </div>
+                <div class="alert alert-success mt-3">完了済み</div>
+              </div>
+
+              <button v-if="currentTab !== 'done'" class="btn btn-primary w-100 py-3 mt-3" @click="saveEdit"
+                :disabled="currentTab === 'progress' && !editForm.pic">
+                {{ currentTab === 'progress' && !editForm.pic ? '担当者を選択してください' : '即座に保存' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     const { createApp } = Vue;
-    let modalInstance = null;
+    let addModalObj, editModalObj;
 
     createApp({
       data() {
         return {
-          isAuthenticated: false,
-          inputPass: '',
-          passCode: 'key1234',
-          currentTab: 'new',
-          items: [],
-          isLoading: false,
-          isSaving: false,
-          editingItem: null,
-          form: {
-            okamotoDate: '',
-            pic: '',
-            completeDate: ''
-          }
+          master: { districts: [], staffs: [] },
+          currentTab: 'new', items: [], isLoading: true, isSyncing: false,
+          sortOption: 'recDesc',
+          newForm: { district: '', address: '', roomNo: '', dueDate: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-' },
+          editingItem: null, editForm: { okamotoDate: '', pic: '', completeDate: '' }
         }
       },
       computed: {
         filteredItems() {
-          return this.items.filter(item => {
+          let list = this.items.filter(item => {
             let status = 'new';
-            if (item.completeDate) status = 'done';
-            else if (item.okamotoDate) status = 'progress';
+            if (item.completeDate && item.completeDate !== "") status = 'done';
+            else if (item.okamotoDate && item.okamotoDate !== "") status = 'progress';
             return status === this.currentTab;
           });
+          list.sort((a, b) => {
+            if (this.sortOption === 'recDesc') return (parseInt(b.receptionNo) || 0) - (parseInt(a.receptionNo) || 0);
+            if (this.sortOption === 'recAsc') return (parseInt(a.receptionNo) || 0) - (parseInt(b.receptionNo) || 0);
+            if (this.sortOption === 'district') return (a.district || '').localeCompare(b.district || '', 'ja');
+            return 0;
+          });
+          return list;
         }
       },
-      mounted() {
-        // セッションストレージで認証維持（簡易）
-        if (sessionStorage.getItem('isKagiAuth') === 'true') {
-          this.isAuthenticated = true;
-          this.loadData();
-        }
-      },
+      mounted() { this.loadData(); },
       methods: {
-        login() {
-          if(this.inputPass === this.passCode) {
-            this.isAuthenticated = true;
-            sessionStorage.setItem('isKagiAuth', 'true');
-            this.loadData();
-          } else {
-            alert('パスワードが正しくありません');
-          }
-        },
-        refreshData() {
-          this.loadData();
-        },
         loadData() {
           this.isLoading = true;
-          // GASの関数を呼び出し
-          if (typeof google !== 'undefined') {
-            google.script.run
-              .withSuccessHandler(data => {
-                this.items = data;
-                this.isLoading = false;
-              })
-              .withFailureHandler(err => {
-                alert('データ取得エラー: ' + err);
-                this.isLoading = false;
-              })
-              .getData();
-          } else {
-            // テスト用ダミーデータ
-            setTimeout(() => {
-              this.items = [
-                { id: '1', receptionNo: '001', district: '渋谷', address: '道玄坂1-1', roomNo: '101', dueDate: '2026-01-20', okamotoDate: '', completeDate: '', pic: '' },
-                { id: '2', receptionNo: '002', district: '新宿', address: '歌舞伎町2-2', roomNo: '202', dueDate: '2026-01-21', okamotoDate: '2026-01-15', completeDate: '', pic: '岡本' }
-              ];
-              this.isLoading = false;
-            }, 1000);
-          }
+          google.script.run.withSuccessHandler(res => {
+            this.items = res.items || [];
+            if (this.master.districts.length === 0 && res.master) {
+              this.master = res.master;
+            }
+            this.isLoading = false;
+          }).getData();
         },
-        openModal(item) {
-          this.editingItem = JSON.parse(JSON.stringify(item));
-          this.form.okamotoDate = item.okamotoDate || '';
-          this.form.pic = item.pic || '';
-          this.form.completeDate = item.completeDate || '';
-          
-          if (!modalInstance) {
-            modalInstance = new bootstrap.Modal(document.getElementById('editModal'));
-          }
-          modalInstance.show();
-        },
-        saveChanges() {
-          if (!this.editingItem) return;
-          this.isSaving = true;
-          
-          const updateData = {
-            okamotoDate: this.form.okamotoDate,
-            pic: this.form.pic,
-            completeDate: this.form.completeDate
+        openAddModal() {
+          const today = new Date();
+          let count = 0; while (count < 7) { today.setDate(today.getDate() + 1); if (today.getDay() !== 0 && today.getDay() !== 6) count++; }
+          const initialDistrict = this.master.districts.length > 0 ? this.master.districts[0] : '';
+          this.newForm = {
+            district: initialDistrict, address: '', roomNo: '', dueDate: today.toISOString().split('T')[0],
+            isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-'
           };
-
-          if (typeof google !== 'undefined') {
-            google.script.run
-              .withSuccessHandler(res => {
-                if (res.success) {
-                  modalInstance.hide();
-                  this.loadData();
-                } else {
-                  alert('保存失敗: ' + res.message);
-                }
-                this.isSaving = false;
-              })
-              .withFailureHandler(err => {
-                alert('通信エラー: ' + err);
-                this.isSaving = false;
-              })
-              .updateItem(this.editingItem.id, updateData);
-          } else {
-            // テスト用
-            setTimeout(() => {
-              const idx = this.items.findIndex(it => it.id === this.editingItem.id);
-              if (idx !== -1) {
-                this.items[idx] = { ...this.items[idx], ...updateData };
-              }
-              modalInstance.hide();
-              this.isSaving = false;
-              alert('保存完了 (テストモード)');
-            }, 1000);
+          if (!addModalObj) addModalObj = new bootstrap.Modal(document.getElementById('addModal'));
+          addModalObj.show();
+        },
+        onEntranceChange(type) {
+          if (type === 'new' && this.newForm.isNewEntrance === '〇') {
+            this.newForm.isUsedEntrance = '-';
+          } else if (type === 'used' && this.newForm.isUsedEntrance === '〇') {
+            this.newForm.isNewEntrance = '-';
           }
+        },
+        saveNewItem() {
+          const tempId = 'temp-' + Date.now();
+          const newItem = { id: tempId, receptionNo: '...', ...this.newForm, okamotoDate: '', completeDate: '', pic: '' };
+          this.items.push(newItem);
+          addModalObj.hide();
+          this.isSyncing = true;
+
+          google.script.run.withSuccessHandler(res => {
+            this.isSyncing = false;
+            if (res.success) {
+              const idx = this.items.findIndex(it => it.id === tempId);
+              if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
+            } else { this.loadData(); }
+          }).addItem(this.newForm);
+        },
+        openEditModal(item) {
+          this.editingItem = JSON.parse(JSON.stringify(item));
+          const today = new Date().toISOString().split('T')[0];
+
+          if (this.currentTab === 'new') {
+            this.editForm = { okamotoDate: item.okamotoDate || today };
+          } else {
+            this.editForm = { pic: item.pic || '', completeDate: item.completeDate || today };
+          }
+
+          if (!editModalObj) editModalObj = new bootstrap.Modal(document.getElementById('editModal'));
+          editModalObj.show();
+        },
+        saveEdit() {
+          if (this.currentTab === 'progress' && !this.editForm.pic) return;
+
+          const idx = this.items.findIndex(it => it.id === this.editingItem.id);
+          if (idx !== -1) {
+            if (this.currentTab === 'new') this.items[idx].okamotoDate = this.editForm.okamotoDate;
+            if (this.currentTab === 'progress') {
+              this.items[idx].pic = this.editForm.pic;
+              this.items[idx].completeDate = this.editForm.completeDate;
+            }
+          }
+
+          const payload = {};
+          if (this.currentTab === 'new') payload.okamotoDate = this.editForm.okamotoDate;
+          else if (this.currentTab === 'progress') { payload.pic = this.editForm.pic; payload.completeDate = this.editForm.completeDate; }
+
+          editModalObj.hide();
+          this.isSyncing = true;
+
+          google.script.run.withSuccessHandler(res => {
+            this.isSyncing = false;
+            if (!res.success) { alert("保存失敗"); this.loadData(); }
+          }).updateItem(this.editingItem.id, payload);
         }
       }
     }).mount('#app');
   </script>
+  <style>
+    @keyframes pulse {
+      0% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.3;
+      }
+    }
+  </style>
 </body>
+
 </html>

@@ -1,14 +1,7 @@
-/**
- * 鍵交換進捗管理システム - バックエンド (Google Apps Script)
- * Version: dev1.0.0.20260115.3
- */
-
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
+const CONFIG_SHEET_NAME = 'config';
 
-/**
- * Webアプリケーションとして表示
- */
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
@@ -17,81 +10,119 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * データの取得
- * @returns {Array<Object>}
- */
 function getData() {
   try {
-    const ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    
+    // --- 1. タスクデータ ---
     const sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) throw new Error(`シート "${SHEET_NAME}" が見つかりません。`);
+    const range = sheet.getDataRange();
+    const values = range.getValues();
+    const displayValues = range.getDisplayValues();
+    values.shift(); displayValues.shift();
 
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift(); // ヘッダーを分離
-
-    return data.map((row, index) => {
+    const items = values.map((row, i) => {
+      if (!row[0]) return null;
       return {
-        rowNum: index + 2, // 1-indexed, headers skipped
-        id: row[0] || '',
-        receptionNo: row[1] || '',
+        id: String(row[0]),
+        receptionNo: String(displayValues[i][1]),
         receptionDate: formatDate(row[2]),
         dueDate: formatDate(row[3]),
-        district: row[4] || '',
-        address: row[5] || '',
-        roomNo: row[6] || '',
-        isNewEntrance: !!row[7],
-        isUsedEntrance: !!row[8],
-        storage: row[9] || '',
-        ps: row[10] || '',
+        district: String(displayValues[i][4]),
+        address: String(displayValues[i][5]),
+        roomNo: String(displayValues[i][6]),
+        // 追加項目も読み込む
+        isNewEntrance: String(row[7] || ''), 
+        isUsedEntrance: String(row[8] || ''),
+        storage: String(row[9] || ''),
+        ps: String(row[10] || ''),
+        // 日付・担当者
         okamotoDate: formatDate(row[11]),
-        pic: row[12] || '',
+        pic: String(row[12] || ''),
         completeDate: formatDate(row[13])
       };
-    });
-  } catch (e) {
-    console.error(e);
-    return [];
+    }).filter(item => item !== null);
+
+    // --- 2. 設定データ ---
+    const configSheet = ss.getSheetByName(CONFIG_SHEET_NAME);
+    let districts = [];
+    let staffs = [];
+    
+    if (configSheet) {
+      const lastRow = configSheet.getLastRow();
+      if (lastRow > 0) {
+        const configData = configSheet.getRange(1, 1, lastRow, 2).getValues();
+        districts = configData.map(r => r[0]).filter(v => v && String(v).trim() !== "");
+        staffs = configData.map(r => r[1]).filter(v => v && String(v).trim() !== "");
+      }
+    }
+
+    return { items: items, master: { districts: districts, staffs: staffs } };
+
+  } catch (e) { 
+    return { items: [], master: { districts: [], staffs: [] } }; 
   }
 }
 
-/**
- * 特定行の更新
- * @param {string} id 一意のID
- * @param {Object} updateData 更新内容
- */
+function addItem(newItem) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    const lastRow = sheet.getLastRow();
+    
+    let nextId = 1; let nextRecNo = 1;
+    if (lastRow > 1) {
+      const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+      const ids = data.map(r => parseInt(r[0]) || 0);
+      const recNos = data.map(r => parseInt(r[1]) || 0);
+      nextId = Math.max(0, ...ids) + 1;
+      nextRecNo = Math.max(0, ...recNos) + 1;
+    }
+
+    const row = [ 
+      nextId, 
+      nextRecNo, 
+      formatDate(new Date()), 
+      newItem.dueDate, 
+      newItem.district, 
+      "'" + newItem.address, 
+      "'" + newItem.roomNo,
+      // ここに追加項目をセット
+      newItem.isNewEntrance, 
+      newItem.isUsedEntrance, 
+      newItem.storage, 
+      newItem.ps,
+      "", "", "" 
+    ];
+    sheet.appendRow(row);
+    return { success: true, newId: String(nextId), newRecNo: String(nextRecNo) };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
 function updateItem(id, updateData) {
   try {
-    const ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
-    const data = sheet.getDataRange().getValues();
+    const ids = sheet.getRange("A:A").getValues().flat();
+    const rowIndex = ids.findIndex(val => String(val) === String(id));
     
-    const rowIndex = data.findIndex(row => row[0] == id);
     if (rowIndex === -1) return { success: false, message: 'IDが見つかりません' };
-    
     const rowNum = rowIndex + 1;
     
-    // 更新可能な項目のみ処理
-    if (updateData.okamotoDate !== undefined) {
-      sheet.getRange(rowNum, 12).setValue(updateData.okamotoDate);
-    }
-    if (updateData.pic !== undefined) {
-      sheet.getRange(rowNum, 13).setValue(updateData.pic);
-    }
-    if (updateData.completeDate !== undefined) {
-      sheet.getRange(rowNum, 14).setValue(updateData.completeDate);
-    }
+    if (updateData.okamotoDate !== undefined) sheet.getRange(rowNum, 12).setValue(updateData.okamotoDate);
+    if (updateData.pic !== undefined) sheet.getRange(rowNum, 13).setValue(updateData.pic);
+    if (updateData.completeDate !== undefined) sheet.getRange(rowNum, 14).setValue(updateData.completeDate);
     
     return { success: true };
-  } catch (e) {
-    return { success: false, message: e.toString() };
-  }
+  } catch (e) { return { success: false, message: e.toString() }; }
 }
 
-/**
- * 日付の整形 (JST)
- */
 function formatDate(date) {
-  if (!date || date === "" || isNaN(new Date(date).getTime())) return "";
-  return Utilities.formatDate(new Date(date), "JST", "yyyy-MM-dd");
+  if (!date || date === "") return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return String(date);
+  const y = d.getFullYear();
+  const m = ("0" + (d.getMonth() + 1)).slice(-2);
+  const day = ("0" + d.getDate()).slice(-2);
+  return `${y}-${m}-${day}`;
 }
