@@ -331,7 +331,7 @@
 
               <button v-if="currentTab !== 'done'" class="btn btn-primary w-100 py-3 mt-3" @click="saveEdit"
                 :disabled="currentTab === 'progress' && !editForm.pic">
-                {{ currentTab === 'progress' && !editForm.pic ? '担当者を選択してください' : '即座に保存' }}
+                {{ currentTab === 'progress' && !editForm.pic ? '担当者を選択してください' : '更新' }}
               </button>
             </div>
           </div>
