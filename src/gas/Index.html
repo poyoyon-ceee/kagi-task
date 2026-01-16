@@ -170,6 +170,10 @@
           <div class="small text-muted mb-1">{{ item.district }} #{{ item.receptionNo }}</div>
           <div class="fw-bold fs-5">{{ item.address }} {{ item.roomNo }}</div>
 
+          <div v-if="item.imageUrl" class="mb-2 text-center">
+            <a :href="item.imageUrl" target="_blank" class="btn btn-sm btn-outline-info" @click.stop>📷 書類写真を確認</a>
+          </div>
+
           <div class="list-key-info row g-0 text-center">
             <div class="col-3 border-end"><span class="list-label">玄関新</span><span class="list-val">{{
                 item.isNewEntrance }}</span></div>
@@ -237,7 +241,19 @@
                   </select></div>
               </div>
 
-              <button class="btn btn-primary w-100 py-3 mt-2" @click="saveNewItem">即座に登録</button>
+              <div class="mb-3">
+                <label class="small fw-bold">書類写真 (任意)</label>
+                <input type="file" ref="fileInput" accept="image/*" capture="environment" class="form-control"
+                  @change="onFileChange">
+                <div v-if="previewImage" class="mt-2 text-center">
+                  <img :src="previewImage" style="max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+              </div>
+
+              <button class="btn btn-primary w-100 py-3 mt-2" @click="saveNewItem" :disabled="isUploading">
+                <span v-if="isUploading" class="spinner-border spinner-border-sm me-2"></span>
+                {{ isUploading ? '画像アップロード中...' : '登録' }}
+              </button>
             </div>
           </div>
         </div>
@@ -254,6 +270,10 @@
             </div>
             <div class="modal-body">
               <p class="fw-bold mb-3 fs-5">{{ editingItem.address }} {{ editingItem.roomNo }}</p>
+
+              <div v-if="editingItem.imageUrl" class="mb-3 text-center">
+                <a :href="editingItem.imageUrl" target="_blank" class="btn btn-outline-info w-100">📷 書類写真を開く</a>
+              </div>
 
               <div class="key-info-box">
                 <div class="row text-center">
@@ -320,9 +340,11 @@
       data() {
         return {
           master: { districts: [], staffs: [] },
-          currentTab: 'new', items: [], isLoading: true, isSyncing: false,
+          currentTab: 'new', items: [], isLoading: true, isSyncing: false, isUploading: false,
           sortOption: 'recDesc',
-          newForm: { district: '', address: '', roomNo: '', dueDate: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-' },
+          newForm: { district: '', address: '', roomNo: '', dueDate: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: '' },
+          previewImage: null,
+          itemImageFile: null,
           editingItem: null, editForm: { okamotoDate: '', pic: '', completeDate: '' }
         }
       },
@@ -361,8 +383,11 @@
           const initialDistrict = this.master.districts.length > 0 ? this.master.districts[0] : '';
           this.newForm = {
             district: initialDistrict, address: '', roomNo: '', dueDate: today.toISOString().split('T')[0],
-            isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-'
+            isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: ''
           };
+          this.previewImage = null;
+          this.itemImageFile = null;
+          if (this.$refs.fileInput) this.$refs.fileInput.value = '';
           if (!addModalObj) addModalObj = new bootstrap.Modal(document.getElementById('addModal'));
           addModalObj.show();
         },
@@ -373,20 +398,51 @@
             this.newForm.isNewEntrance = '-';
           }
         },
-        saveNewItem() {
-          const tempId = 'temp-' + Date.now();
-          const newItem = { id: tempId, receptionNo: '...', ...this.newForm, okamotoDate: '', completeDate: '', pic: '' };
-          this.items.push(newItem);
-          addModalObj.hide();
-          this.isSyncing = true;
+        onFileChange(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.itemImageFile = file;
 
-          google.script.run.withSuccessHandler(res => {
-            this.isSyncing = false;
-            if (res.success) {
-              const idx = this.items.findIndex(it => it.id === tempId);
-              if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
-            } else { this.loadData(); }
-          }).addItem(this.newForm);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            this.previewImage = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        },
+        saveNewItem() {
+          this.isUploading = true;
+
+          const submitData = (imageUrl) => {
+            const tempId = 'temp-' + Date.now();
+            this.newForm.imageUrl = imageUrl;
+            const newItem = { id: tempId, receptionNo: '...', ...this.newForm, okamotoDate: '', completeDate: '', pic: '' };
+            this.items.push(newItem);
+            addModalObj.hide();
+            this.isSyncing = true;
+            this.isUploading = false;
+
+            google.script.run.withSuccessHandler(res => {
+              this.isSyncing = false;
+              if (res.success) {
+                const idx = this.items.findIndex(it => it.id === tempId);
+                if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
+              } else { this.loadData(); }
+            }).addItem(this.newForm);
+          };
+
+          if (this.previewImage) {
+            // 画像がある場合は先にアップロード
+            google.script.run.withSuccessHandler(res => {
+              if (res.success) {
+                submitData(res.url);
+              } else {
+                alert('画像のアップロードに失敗しました: ' + res.message);
+                this.isUploading = false;
+              }
+            }).uploadImage(this.previewImage, this.itemImageFile ? this.itemImageFile.name : 'image.jpg');
+          } else {
+            submitData('');
+          }
         },
         openEditModal(item) {
           this.editingItem = JSON.parse(JSON.stringify(item));

@@ -1,6 +1,7 @@
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';
+const FOLDER_NAME = 'KeyExchange_Images';
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
@@ -39,7 +40,8 @@ function getData() {
         // 日付・担当者
         okamotoDate: formatDate(row[11]),
         pic: String(row[12] || ''),
-        completeDate: formatDate(row[13])
+        completeDate: formatDate(row[13]),
+        imageUrl: String(row[14] || '')
       };
     }).filter(item => item !== null);
 
@@ -92,11 +94,37 @@ function addItem(newItem) {
       newItem.isUsedEntrance, 
       newItem.storage, 
       newItem.ps,
-      "", "", "" 
+      "", "", "",
+      newItem.imageUrl || ""
     ];
     sheet.appendRow(row);
     return { success: true, newId: String(nextId), newRecNo: String(nextRecNo) };
   } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function uploadImage(base64Data, fileName) {
+  try {
+    const folders = DriveApp.getFoldersByName(FOLDER_NAME);
+    let folder;
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(FOLDER_NAME);
+    }
+    
+    // Base64のヘッダー除去（data:image/jpeg;base64, など）
+    const data = base64Data.split(',')[1] || base64Data;
+    const decoded = Utilities.base64Decode(data);
+    const blob = Utilities.newBlob(decoded, MimeType.JPEG, fileName || "image.jpg");
+    const file = folder.createFile(blob);
+    
+    // 閲覧権限を「リンクを知っている全員」にする
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    return { success: true, url: file.getUrl() };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
 }
 
 function updateItem(id, updateData) {
