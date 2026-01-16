@@ -113,17 +113,18 @@
     }
 
     .list-label {
-      font-size: 0.7rem;
-      color: #888;
+      font-size: 0.85rem;
+      color: #333;
+      font-weight: 600;
       display: block;
       line-height: 1;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .list-val {
-      font-weight: 800;
-      font-size: 1.1rem;
-      color: #333;
+      font-weight: 900;
+      font-size: 1.4rem;
+      color: #000;
     }
   </style>
 </head>
@@ -159,21 +160,27 @@
         <div class="d-flex justify-content-end mb-2 align-items-center">
           <label class="small text-muted me-2">並び順:</label>
           <select v-model="sortOption" class="form-select w-auto sort-select">
-            <option value="recDesc">受付No (新しい順)</option>
-            <option value="recAsc">受付No (古い順)</option>
+            <option value="recDesc">新しい順</option>
+            <option value="recAsc">古い順</option>
             <option value="district">地区順</option>
           </select>
         </div>
 
         <div v-for="(item, index) in filteredItems" :key="item.id" class="task-card" :class="'status-'+currentTab"
           @click="openEditModal(item)">
-          <div class="small text-muted mb-1">{{ item.district }} #{{ item.receptionNo }}</div>
-          <div class="fw-bold fs-5">{{ item.address }} {{ item.roomNo }}</div>
-
-          <div v-if="item.imageUrl" class="mb-2 text-center">
-            <a :href="item.imageUrl" target="_blank" class="btn btn-sm btn-outline-info" @click.stop>📷 書類写真を確認</a>
+          <!-- 上段: 受付No・地区・住所・号室・写真ボタン -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap mb-2">
+            <div class="d-flex align-items-baseline gap-2 flex-wrap">
+              <span class="text-muted" style="font-size:0.85rem;">#{{ item.receptionNo }}</span>
+              <span style="font-size:1.6rem; font-weight:900; color:#1a73e8;">{{ item.district }}</span>
+              <span style="font-size:1.6rem; font-weight:900; color:#000;">{{ item.address }}</span>
+              <span style="font-size:1.6rem; font-weight:900; color:#000;">{{ item.roomNo }}</span>
+            </div>
+            <a v-if="item.imageUrl" :href="item.imageUrl" target="_blank" class="btn btn-sm btn-outline-info"
+              @click.stop>📷 書類写真</a>
           </div>
 
+          <!-- 下段: 鍵情報 -->
           <div class="list-key-info row g-0 text-center">
             <div class="col-3 border-end"><span class="list-label">玄関新</span><span class="list-val">{{
                 item.isNewEntrance }}</span></div>
@@ -184,7 +191,8 @@
             <div class="col-3"><span class="list-label">PS</span><span class="list-val">{{ item.ps }}</span></div>
           </div>
 
-          <div class="small mt-2 text-muted text-end">
+          <!-- 最下段: 期限・担当者 -->
+          <div class="text-center mt-2" style="font-size:0.95rem; color:#555;">
             <span v-if="currentTab === 'done'">✅ 完了日: {{ item.completeDate }} / 👤 {{ item.pic }}</span>
             <span v-else>📅 期限: {{ item.dueDate }} / 👤 {{ item.pic || '未設定' }}</span>
           </div>
@@ -203,11 +211,15 @@
             </div>
             <div class="modal-body">
               <label class="small fw-bold">地区</label>
-              <select v-model="newForm.district" class="form-select mb-2">
+              <select v-model="newForm.district" @change="onDistrictChange" class="form-select mb-2">
                 <option v-for="d in master.districts" :value="d">{{ d }}</option>
               </select>
-              <label class="small fw-bold">対象住所</label><input type="text" v-model="newForm.address"
-                class="form-control mb-2">
+              <label class="small fw-bold">対象住所</label>
+              <select v-if="currentAddresses.length > 0" v-model="newForm.address" class="form-select mb-1">
+                <option value="">-- 選択してください --</option>
+                <option v-for="addr in currentAddresses" :value="addr">{{ addr }}</option>
+              </select>
+              <input type="text" v-model="newForm.address" class="form-control mb-2" placeholder="または直接入力">
               <label class="small fw-bold">号室</label><input type="text" v-model="newForm.roomNo"
                 class="form-control mb-2">
               <label class="small fw-bold">完了予定日</label><input type="date" v-model="newForm.dueDate"
@@ -230,6 +242,7 @@
                 </div>
                 <div class="col-6"><label class="small fw-bold">物置</label><select v-model="newForm.storage"
                     class="form-select">
+                    <option value="-">-</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
@@ -250,10 +263,7 @@
                 </div>
               </div>
 
-              <button class="btn btn-primary w-100 py-3 mt-2" @click="saveNewItem" :disabled="isUploading">
-                <span v-if="isUploading" class="spinner-border spinner-border-sm me-2"></span>
-                {{ isUploading ? '画像アップロード中...' : '登録' }}
-              </button>
+              <button class="btn btn-primary w-100 py-3 mt-2" @click="saveNewItem">登録</button>
             </div>
           </div>
         </div>
@@ -339,10 +349,11 @@
     createApp({
       data() {
         return {
-          master: { districts: [], staffs: [] },
-          currentTab: 'new', items: [], isLoading: true, isSyncing: false, isUploading: false,
+          master: { districts: [], addressesByDistrict: {}, staffs: [] },
+          currentTab: 'new', items: [], isLoading: true, isSyncing: false,
           sortOption: 'recDesc',
-          newForm: { district: '', address: '', roomNo: '', dueDate: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: '' },
+          currentAddresses: [],
+          newForm: { district: '', address: '', roomNo: '', dueDate: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '-', ps: '-', imageUrl: '' },
           previewImage: null,
           itemImageFile: null,
           editingItem: null, editForm: { okamotoDate: '', pic: '', completeDate: '' }
@@ -385,6 +396,8 @@
             district: initialDistrict, address: '', roomNo: '', dueDate: today.toISOString().split('T')[0],
             isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: ''
           };
+          // 初期地区の住所リストを設定
+          this.currentAddresses = this.master.addressesByDistrict[initialDistrict] || [];
           this.previewImage = null;
           this.itemImageFile = null;
           if (this.$refs.fileInput) this.$refs.fileInput.value = '';
@@ -398,29 +411,115 @@
             this.newForm.isNewEntrance = '-';
           }
         },
+        onDistrictChange() {
+          // 地区変更時に住所リストを更新
+          this.currentAddresses = this.master.addressesByDistrict[this.newForm.district] || [];
+          this.newForm.address = '';
+        },
         onFileChange(e) {
           const file = e.target.files[0];
           if (!file) return;
           this.itemImageFile = file;
 
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            this.previewImage = e.target.result;
+          // ファイルサイズチェック（10MB以上は警告）
+          if (file.size > 10 * 1024 * 1024) {
+            alert('画像サイズが大きすぎます。処理に時間がかかる場合があります。');
+          }
+
+          const blobUrl = URL.createObjectURL(file);
+          const img = new Image();
+
+          img.onload = () => {
+            // 非同期で処理してUIブロックを防止
+            requestAnimationFrame(() => {
+              const MAX_WIDTH = 1024;
+              const QUALITY = 0.6;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > MAX_WIDTH) {
+                height = Math.round(height * MAX_WIDTH / width);
+                width = MAX_WIDTH;
+              }
+
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              this.previewImage = canvas.toDataURL('image/jpeg', QUALITY);
+
+              // メモリ解放
+              URL.revokeObjectURL(blobUrl);
+              canvas.width = 0;
+              canvas.height = 0;
+            });
           };
-          reader.readAsDataURL(file);
+
+          img.onerror = () => {
+            URL.revokeObjectURL(blobUrl);
+            alert('画像の読み込みに失敗しました');
+          };
+
+          img.src = blobUrl;
         },
         saveNewItem() {
-          this.isUploading = true;
+          const tempId = 'temp-' + Date.now();
+          const imageData = this.previewImage;
+          const fileName = this.itemImageFile ? this.itemImageFile.name : 'image.jpg';
 
-          const submitData = (imageUrl) => {
-            const tempId = 'temp-' + Date.now();
-            this.newForm.imageUrl = imageUrl;
-            const newItem = { id: tempId, receptionNo: '...', ...this.newForm, okamotoDate: '', completeDate: '', pic: '' };
-            this.items.push(newItem);
-            addModalObj.hide();
-            this.isSyncing = true;
-            this.isUploading = false;
+          // 楽観的UI: 即座にリストに追加してモーダルを閉じる
+          const newItem = {
+            id: tempId,
+            receptionNo: '...',
+            ...this.newForm,
+            imageUrl: imageData ? '(アップロード中...)' : '',
+            okamotoDate: '',
+            completeDate: '',
+            pic: ''
+          };
+          this.items.push(newItem);
+          addModalObj.hide();
+          this.isSyncing = true;
 
+          // 画像がある場合は裏でアップロード→保存
+          if (imageData) {
+            google.script.run
+              .withSuccessHandler(uploadRes => {
+                if (uploadRes.success) {
+                  this.newForm.imageUrl = uploadRes.url;
+                  // リスト上のURLも更新
+                  const idx = this.items.findIndex(it => it.id === tempId);
+                  if (idx !== -1) this.items[idx].imageUrl = uploadRes.url;
+
+                  // データを保存
+                  google.script.run.withSuccessHandler(res => {
+                    this.isSyncing = false;
+                    if (res.success) {
+                      const idx2 = this.items.findIndex(it => it.id === tempId);
+                      if (idx2 !== -1) {
+                        this.items[idx2].id = res.newId;
+                        this.items[idx2].receptionNo = res.newRecNo;
+                      }
+                    } else { this.loadData(); }
+                  }).addItem(this.newForm);
+                } else {
+                  this.isSyncing = false;
+                  alert('画像のアップロードに失敗しました: ' + uploadRes.message);
+                  this.loadData();
+                }
+              })
+              .withFailureHandler(err => {
+                this.isSyncing = false;
+                alert('画像アップロードエラー: ' + err);
+                this.loadData();
+              })
+              .uploadImage(imageData, fileName);
+          } else {
+            // 画像なしの場合は即保存
+            this.newForm.imageUrl = '';
             google.script.run.withSuccessHandler(res => {
               this.isSyncing = false;
               if (res.success) {
@@ -428,20 +527,6 @@
                 if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
               } else { this.loadData(); }
             }).addItem(this.newForm);
-          };
-
-          if (this.previewImage) {
-            // 画像がある場合は先にアップロード
-            google.script.run.withSuccessHandler(res => {
-              if (res.success) {
-                submitData(res.url);
-              } else {
-                alert('画像のアップロードに失敗しました: ' + res.message);
-                this.isUploading = false;
-              }
-            }).uploadImage(this.previewImage, this.itemImageFile ? this.itemImageFile.name : 'image.jpg');
-          } else {
-            submitData('');
           }
         },
         openEditModal(item) {

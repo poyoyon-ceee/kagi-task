@@ -45,24 +45,47 @@ function getData() {
       };
     }).filter(item => item !== null);
 
-    // --- 2. 設定データ ---
+    // --- 2. 設定データ (A:地区, B:住所, C:担当者) ---
     const configSheet = ss.getSheetByName(CONFIG_SHEET_NAME);
     let districts = [];
+    let addressesByDistrict = {};
     let staffs = [];
     
     if (configSheet) {
       const lastRow = configSheet.getLastRow();
       if (lastRow > 0) {
-        const configData = configSheet.getRange(1, 1, lastRow, 2).getValues();
-        districts = configData.map(r => r[0]).filter(v => v && String(v).trim() !== "");
-        staffs = configData.map(r => r[1]).filter(v => v && String(v).trim() !== "");
+        const configData = configSheet.getRange(1, 1, lastRow, 3).getValues();
+        const districtSet = new Set();
+        const staffSet = new Set();
+        
+        configData.forEach(row => {
+          const district = String(row[0] || '').trim();
+          const address = String(row[1] || '').trim();
+          const staff = String(row[2] || '').trim();
+          
+          if (district) {
+            districtSet.add(district);
+            if (!addressesByDistrict[district]) {
+              addressesByDistrict[district] = [];
+            }
+            if (address) {
+              addressesByDistrict[district].push(address);
+            }
+          }
+          if (staff) {
+            staffSet.add(staff);
+          }
+        });
+        
+        districts = Array.from(districtSet);
+        staffs = Array.from(staffSet);
       }
     }
 
-    return { items: items, master: { districts: districts, staffs: staffs } };
+    return { items: items, master: { districts: districts, addressesByDistrict: addressesByDistrict, staffs: staffs } };
 
   } catch (e) { 
-    return { items: [], master: { districts: [], staffs: [] } }; 
+    return { items: [], master: { districts: [], addressesByDistrict: {}, staffs: [] } }; 
   }
 }
 
