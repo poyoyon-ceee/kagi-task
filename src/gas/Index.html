@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KeyExchange Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #6c757d;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+      --info-color: #17a2b8;
+      --bg-color: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-main: #1a1a1a;
+      --text-muted: #666666;
+    }
+
+    body {
+      background: var(--bg-color);
+      font-family: 'Inter', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      padding-bottom: 100px;
+      color: var(--text-main);
+    }
+
+    .app-header {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .nav-pills {
+      margin: 20px 0;
+      background: #e9ecef;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .nav-pills .nav-link {
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 8px 16px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-pills .nav-link.active {
+      background-color: var(--card-bg);
+      color: var(--primary-color);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .task-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 8px 12px 10px 15px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.03);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .task-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+    }
+
+    .status-new::before {
+      background-color: var(--primary-color);
+    }
+
+    .status-progress::before {
+      background-color: var(--warning-color);
+    }
+
+    .status-done::before {
+      background-color: var(--success-color);
+    }
+
+    .reception-no {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .district-badge {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--primary-color);
+    }
+
+    .address-text {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #000;
+      letter-spacing: -0.02em;
+    }
+
+    .room-no {
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .info-line {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0 2px 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      align-items: center;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+
+    .small-meta {
+      display: flex;
+      gap: 6px !important;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    @media (max-width: 400px) {
+      .info-line {
+        gap: 4px;
+        font-size: 0.85rem;
+      }
+
+      .small-meta {
+        gap: 4px !important;
+      }
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 800;
+      color: var(--secondary-color);
+    }
+
+    .info-val {
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+
+    /* --- 新規タブ特有のスタイル --- */
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--secondary-color);
+      margin: 20px 0 10px 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 16px;
+      background: var(--primary-color);
+      border-radius: 2px;
+    }
+
+    .status-summary-list {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      list-style: none;
+    }
+
+    .status-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #444;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    .status-summary-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-dropdown-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .status-select-toggle {
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .status-select-toggle:hover {
+      filter: brightness(0.95);
+      transform: translateY(-1px);
+    }
+
+    /* 画像に基づいたカラーリング（枠全体の色） */
+    .btn-status-yellow {
+      background-color: #FFF9C4;
+      border-color: #FBC02D;
+      color: #856404;
+    }
+
+    .btn-status-blue {
+      background-color: #E3F2FD;
+      border-color: #2196F3;
+      color: #0D47A1;
+    }
+
+    .btn-status-red {
+      background-color: #FFEBEE;
+      border-color: #FF5252;
+      color: #B71C1C;
+    }
+
+    .status-select-toggle::after {
+      display: inline-block;
+      margin-left: 0.255em;
+      vertical-align: 0.255em;
+      content: "";
+      border-top: 0.3em solid;
+      border-right: 0.3em solid transparent;
+      border-bottom: 0;
+      border-left: 0.3em solid transparent;
+    }
+
+    .dropdown-menu-status {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-fab {
+      position: fixed;
+      bottom: 30px;
+      right: 25px;
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-color), #0056b3);
+      color: white;
+      border: none;
+      font-size: 32px;
+      box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-fab:active {
+      transform: scale(0.9);
+    }
+
+    .version-tag {
+      font-size: 10px;
+      color: #999;
+      text-align: center;
+      padding: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-content {
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 20px;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .btn-primary {
+      border-radius: 12px;
+      padding: 12px;
+      font-weight: 600;
+    }
+
+    .form-select,
+    .form-control {
+      border-radius: 10px;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+    }
+
+    .key-info-box {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #eee;
+    }
+
+    .key-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: bold;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .key-value {
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #111;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.3;
+      }
+    }
+
+    .sync-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), #82b1ff);
+      z-index: 2000;
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div v-if="isSyncing" class="sync-bar"></div>
+
+    <div v-if="isLoading" class="text-center" style="margin-top: 20vh;">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+      <p class="mt-3 text-muted">データを読み込み中...</p>
+    </div>
+
+    <div v-else>
+      <header class="app-header">
+        <div class="container d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
+            <h5 class="mb-0 fw-bold">鍵取替管理</h5>
+          </div>
+          <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
+            <i class="bi bi-arrow-clockwise me-1"></i>更新
+          </button>
+        </div>
+      </header>
+
+      <div class="container">
+        <ul class="nav nav-pills nav-fill">
+          <li v-for="tab in ['new', 'progress', 'done']" :key="tab" class="nav-item">
+            <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
+              href="javascript:void(0)">
+              {{ tab === 'new' ? '新規' : tab === 'progress' ? '進行中' : '完了' }}
+            </a>
+          </li>
+        </ul>
+
+        <div class="d-flex justify-content-between mb-3 align-items-center">
+          <div class="small text-muted">全 {{ filteredItems.length }} 件</div>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-sort-down me-2 text-muted"></i>
+            <select v-model="sortOption" class="form-select form-select-sm w-auto border-0 bg-transparent fw-bold"
+              style="box-shadow: none;">
+              <option value="recDesc">受付No新しい順</option>
+              <option value="recAsc">受付No古い順</option>
+              <option value="dateDesc">期限の新しい順</option>
+              <option value="district">地区順</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="currentTab === 'new'">
+          <!-- 本日の更新内容（単一セレクトボックス） -->
+          <div class="section-title">本日の更新内容</div>
+          <div class="dropdown mb-3">
+            <button class="status-select-toggle dropdown-toggle" :class="statusDropdownColor" type="button"
+              data-bs-toggle="dropdown">
+              {{ selectedStatusText }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-status">
+              <li>
+                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 0}" href="#"
+                  @click.prevent="selectStatus($event, 0, '本日の更新作業はまだしておりません')">
+                  本日の更新作業はまだしておりません
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 1}" href="#"
+                  @click.prevent="selectStatus($event, 1, '本日の鍵取り替え作業はありません')">
+                  本日の鍵取り替え作業はありません
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 2}" href="#"
+                  @click.prevent="selectStatus($event, 2, '以下の鍵が新規に出ました')">
+                  以下の鍵が新規に出ました
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div v-for="item in todayNewItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="reception-no">#{{ item.receptionNo }}</span>
+                <span class="district-badge">{{ item.district }}</span>
+                <span class="address-text">{{ item.address }}</span>
+                <span class="room-no text-primary">{{ item.roomNo }}</span>
+              </div>
+              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
+                @click.stop="window.open(item.imageUrl)">
+                <i class="bi bi-image-fill fs-5"></i>
+                <span class="small fw-bold">写真</span>
+              </div>
+            </div>
+            <div class="info-line">
+              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
+                  item.isNewEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
+                  item.isUsedEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
+                  item.storage }}</span></div>
+              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
+                  }}</span></div>
+              <div class="small-meta text-end">
+                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
+                  formatDateView(item.dueDate) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 昨日までの更新内容 -->
+          <div class="section-title">昨日までの更新内容</div>
+          <div v-for="item in pastNewItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="reception-no">#{{ item.receptionNo }}</span>
+                <span class="district-badge">{{ item.district }}</span>
+                <span class="address-text">{{ item.address }}</span>
+                <span class="room-no text-primary">{{ item.roomNo }}</span>
+              </div>
+              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
+                @click.stop="window.open(item.imageUrl)">
+                <i class="bi bi-image-fill fs-5"></i>
+                <span class="small fw-bold">写真</span>
+              </div>
+            </div>
+            <div class="info-line">
+              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
+                  item.isNewEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
+                  item.isUsedEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
+                  item.storage }}</span></div>
+              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
+                  }}</span></div>
+              <div class="small-meta text-end">
+                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
+                  formatDateView(item.dueDate) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="todayNewItems.length === 0 && pastNewItems.length === 0" class="text-center py-5">
+            <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
+            <p class="text-muted">新規案件はありません</p>
+          </div>
+        </div>
+
+        <div v-else>
+          <div v-for="(item, index) in filteredItems" :key="item.id" class="task-card" :class="'status-'+currentTab"
+            @click="openEditModal(item)">
+
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="reception-no">#{{ item.receptionNo }}</span>
+                <span class="district-badge">{{ item.district }}</span>
+                <span class="address-text">{{ item.address }}</span>
+                <span class="room-no text-primary">{{ item.roomNo }}</span>
+              </div>
+              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
+                @click.stop="window.open(item.imageUrl)">
+                <i class="bi bi-image-fill fs-5"></i>
+                <span class="small fw-bold">写真</span>
+              </div>
+            </div>
+
+            <div class="info-line">
+              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
+                  item.isNewEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
+                  item.isUsedEntrance }}</span></div>
+              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
+                  item.storage
+                  }}</span></div>
+              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
+                  }}</span></div>
+
+              <div class="small-meta text-end">
+                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
+                  formatDateView(currentTab === 'done' ? item.completeDate : item.dueDate) }}</div>
+                <div v-if="currentTab === 'done'" class="info-item fw-bold text-dark"
+                  style="min-width: 3.5em; justify-content: flex-end;">
+                  <i class="bi bi-person-circle me-1"></i>{{ item.pic || '未' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="filteredItems.length === 0" class="text-center py-5">
+            <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
+            <p class="text-muted">案件はありません</p>
+          </div>
+        </div>
+
+        <div class="version-tag">
+          dev1.0.0.20260120.1
+        </div>
+      </div>
+
+      <button class="btn-fab" @click="openAddModal">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+
+      <!-- 新規登録モーダル -->
+      <div class="modal fade" id="addModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="fw-bold mb-0">新規案件登録</h5>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">地区</label>
+                <select v-model="newForm.district" @change="onDistrictChange" class="form-select">
+                  <option v-for="d in master.districts" :value="d">{{ d }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">対象住所</label>
+                <select v-model="newForm.address" class="form-select">
+                  <option value="">選択してください</option>
+                  <option v-for="addr in currentAddresses" :value="addr">{{ addr }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">号室</label>
+                <input type="text" v-model="newForm.roomNo" class="form-control" placeholder="101">
+              </div>
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">完了予定日</label>
+                <input type="date" v-model="newForm.dueDate" class="form-control">
+              </div>
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">依頼担当者</label>
+                <select v-model="newForm.requester" class="form-select">
+                  <option value="">選択してください</option>
+                  <option v-for="r in master.requesters" :value="r">{{ r }}</option>
+                </select>
+              </div>
+
+              <div class="row g-2 mb-4">
+                <div class="col-6">
+                  <label class="small fw-bold mb-1">玄関新</label>
+                  <select v-model="newForm.isNewEntrance" @change="onEntranceChange('new')" class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="small fw-bold mb-1">玄関古</label>
+                  <select v-model="newForm.isUsedEntrance" @change="onEntranceChange('used')" class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="small fw-bold mb-1">物置</label>
+                  <select v-model="newForm.storage" class="form-select">
+                    <option value="-">-</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="small fw-bold mb-1">PS</label>
+                  <select v-model="newForm.ps" class="form-select">
+                    <option value="-">-</option>
+                    <option value="〇">〇</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="small fw-bold mb-1">書類写真</label>
+                <input type="file" ref="fileInput" accept="image/*" capture="environment" class="form-control"
+                  @change="onFileChange">
+                <div v-if="previewImage" class="mt-2 rounded overflow-hidden border">
+                  <img :src="previewImage" class="w-100" style="max-height: 150px; object-fit: cover;">
+                </div>
+              </div>
+
+              <button class="btn btn-primary w-100 shadow-sm py-3" @click="saveNewItem">
+                <i class="bi bi-check2-circle me-2"></i>登録する
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 編集・詳細モーダル -->
+      <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content" v-if="editingItem">
+            <div class="modal-header">
+              <h5 class="fw-bold mb-0">{{ editMode ? '内容を編集' : (currentTab === 'done' ? '完了案件' : '案件詳細') }}</h5>
+              <button class="btn-close" data-bs-dismiss="modal" @click="editMode = false"></button>
+            </div>
+            <div class="modal-body">
+              <!-- 受付番号（常に表示） -->
+              <div class="mb-3">
+                <div class="reception-no text-primary fw-bold mb-1">#{{ editingItem.receptionNo }}</div>
+              </div>
+
+              <!-- ========== 詳細表示モード（読み取り専用） ========== -->
+              <div v-if="!editMode">
+                <!-- 基本情報 -->
+                <div class="fs-5 fw-bold mb-2">{{ editingItem.district }} {{ editingItem.address }} {{
+                  editingItem.roomNo }}</div>
+                <div class="row mb-3 small">
+                  <div class="col-6">
+                    <span class="text-muted">受付日:</span>
+                    <span class="fw-bold ms-1">{{ editingItem.receptionDate || '-' }}</span>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted">期限日:</span>
+                    <span class="fw-bold ms-1">{{ editingItem.dueDate || '-' }}</span>
+                  </div>
+                </div>
+                <div class="key-info-box mb-3">
+                  <div class="row text-center">
+                    <div class="col-3 border-end">
+                      <span class="key-label">玄関新</span>
+                      <span class="key-value">{{ editingItem.isNewEntrance }}</span>
+                    </div>
+                    <div class="col-3 border-end">
+                      <span class="key-label">玄関古</span>
+                      <span class="key-value">{{ editingItem.isUsedEntrance }}</span>
+                    </div>
+                    <div class="col-3 border-end">
+                      <span class="key-label">物置</span>
+                      <span class="key-value">{{ editingItem.storage }}</span>
+                    </div>
+                    <div class="col-3">
+                      <span class="key-label">PS</span>
+                      <span class="key-value">{{ editingItem.ps }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 進捗・担当情報 -->
+                <div class="p-3 bg-light rounded-3 mb-3 small">
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">依頼担当者:</span>
+                    <span class="fw-bold">{{ editingItem.requester || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">MMS受取日:</span>
+                    <span class="fw-bold">{{ editingItem.okamotoDate || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">受取担当者:</span>
+                    <span class="fw-bold">{{ editingItem.receiver || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">完了担当者:</span>
+                    <span class="fw-bold">{{ editingItem.pic || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted">完了日:</span>
+                    <span class="fw-bold">{{ editingItem.completeDate || '-' }}</span>
+                  </div>
+                </div>
+
+                <!-- 写真リンク -->
+                <div v-if="editingItem.imageUrl" class="mb-3">
+                  <a :href="editingItem.imageUrl" target="_blank" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-image me-2"></i>写真を確認する
+                  </a>
+                </div>
+
+                <!-- 進捗更新セクション（新規・進行中タブのみ） -->
+                <div v-if="currentTab === 'new'" class="border-top pt-3">
+                  <div class="small text-muted mb-2">進捗を更新</div>
+                  <label class="small fw-bold mb-1">MMS受取日</label>
+                  <input type="date" v-model="editForm.okamotoDate" class="form-control mb-3">
+                  <label class="small fw-bold mb-1">受取担当者</label>
+                  <select v-model="editForm.receiver" class="form-select mb-3">
+                    <option value="">選択してください</option>
+                    <option v-for="p in master.staffs" :value="p">{{ p }}</option>
+                  </select>
+                </div>
+
+                <div v-if="currentTab === 'progress'" class="border-top pt-3">
+                  <div class="small text-muted mb-2">完了報告</div>
+                  <div class="mb-3">
+                    <label class="small fw-bold mb-1">完了報告者 <span class="text-danger">*</span></label>
+                    <select v-model="editForm.pic" class="form-select" :class="{'is-invalid': !editForm.pic}">
+                      <option value="">選択してください</option>
+                      <option v-for="p in master.staffs" :value="p">{{ p }}</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="small fw-bold mb-1">完了報告日</label>
+                    <input type="date" v-model="editForm.completeDate" class="form-control">
+                  </div>
+                </div>
+
+                <!-- ボタンエリア -->
+                <div class="d-flex gap-2 mt-3" v-if="currentTab !== 'done'">
+                  <button class="btn btn-outline-secondary flex-fill" @click="editMode = true">
+                    <i class="bi bi-pencil me-1"></i>編集
+                  </button>
+                  <button class="btn btn-primary flex-fill" @click="saveEdit"
+                    :disabled="currentTab === 'progress' && !editForm.pic">
+                    {{ currentTab === 'new' ? '進捗を更新' : '完了報告' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- ========== 編集モード ========== -->
+              <div v-else>
+                <div class="row g-2 mb-3">
+                  <div class="col-4">
+                    <label class="small fw-bold mb-1">地区</label>
+                    <select v-model="editForm.district" @change="onEditDistrictChange"
+                      class="form-select form-select-sm">
+                      <option v-for="d in master.districts" :value="d">{{ d }}</option>
+                    </select>
+                  </div>
+                  <div class="col-5">
+                    <label class="small fw-bold mb-1">住所</label>
+                    <select v-model="editForm.address" class="form-select form-select-sm">
+                      <option v-for="addr in editAddresses" :value="addr">{{ addr }}</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="small fw-bold mb-1">号室</label>
+                    <input type="text" v-model="editForm.roomNo" class="form-control form-control-sm">
+                  </div>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="small fw-bold mb-1">期限日</label>
+                    <input type="date" v-model="editForm.dueDate" class="form-control form-control-sm">
+                  </div>
+                  <div class="col-6">
+                    <label class="small fw-bold mb-1">依頼担当者</label>
+                    <select v-model="editForm.requester" class="form-select form-select-sm">
+                      <option value="">-</option>
+                      <option v-for="r in master.requesters" :value="r">{{ r }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-3">
+                    <label class="small fw-bold mb-1">玄関新</label>
+                    <select v-model="editForm.isNewEntrance" @change="onEditEntranceChange('new')"
+                      class="form-select form-select-sm">
+                      <option value="-">-</option>
+                      <option value="〇">〇</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="small fw-bold mb-1">玄関古</label>
+                    <select v-model="editForm.isUsedEntrance" @change="onEditEntranceChange('used')"
+                      class="form-select form-select-sm">
+                      <option value="-">-</option>
+                      <option value="〇">〇</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="small fw-bold mb-1">物置</label>
+                    <select v-model="editForm.storage" class="form-select form-select-sm">
+                      <option value="-">-</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="small fw-bold mb-1">PS</label>
+                    <select v-model="editForm.ps" class="form-select form-select-sm">
+                      <option value="-">-</option>
+                      <option value="〇">〇</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 写真の撮り直し -->
+                <div class="mb-3">
+                  <label class="small fw-bold mb-1">写真</label>
+                  <div v-if="editingItem.imageUrl && !editPreviewImage" class="mb-2">
+                    <a :href="editingItem.imageUrl" target="_blank" class="text-primary small">
+                      <i class="bi bi-image me-1"></i>現在の写真を確認
+                    </a>
+                  </div>
+                  <div v-if="editPreviewImage" class="mb-2">
+                    <img :src="editPreviewImage" class="img-fluid rounded" style="max-height: 150px;">
+                    <button type="button" class="btn btn-sm btn-link text-danger" @click="clearEditImage">
+                      <i class="bi bi-x-circle"></i> 取り消し
+                    </button>
+                  </div>
+                  <input type="file" accept="image/*" capture="environment" class="form-control form-control-sm"
+                    @change="onEditFileChange" ref="editFileInput">
+                </div>
+
+                <!-- ボタンエリア -->
+                <div class="d-flex gap-2 mt-4">
+                  <button class="btn btn-outline-secondary flex-fill" @click="editMode = false">
+                    キャンセル
+                  </button>
+                  <button class="btn btn-primary flex-fill" @click="saveEdit">
+                    <i class="bi bi-check-lg me-1"></i>保存
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const { createApp } = Vue;
+    let addModalObj, editModalObj;
+
+    createApp({
+      data() {
+        return {
+          master: { districts: [], addressesByDistrict: {}, staffs: [], requesters: [] },
+          currentTab: 'new', items: [], isLoading: true, isSyncing: false,
+          sortOption: 'recDesc',
+          currentAddresses: [],
+          editAddresses: [],
+          newForm: { district: '', address: '', roomNo: '', dueDate: '', requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '-', ps: '-', imageUrl: '' },
+          previewImage: null,
+          itemImageFile: null,
+          editingItem: null, editForm: {},
+          editMode: false,
+          editPreviewImage: null,
+          editImageFile: null,
+          selectedStatusIndex: 0,
+          selectedStatusText: '本日の更新作業はまだしておりません'
+        }
+      },
+      computed: {
+        filteredItems() {
+          let list = this.items.filter(item => {
+            let status = 'new';
+            if (item.completeDate && item.completeDate !== "") status = 'done';
+            else if (item.okamotoDate && item.okamotoDate !== "") status = 'progress';
+            return status === this.currentTab;
+          });
+          list.sort((a, b) => {
+            if (this.sortOption === 'recDesc') return (parseInt(b.receptionNo) || 0) - (parseInt(a.receptionNo) || 0);
+            if (this.sortOption === 'recAsc') return (parseInt(a.receptionNo) || 0) - (parseInt(b.receptionNo) || 0);
+            if (this.sortOption === 'dateDesc') {
+              const dateA = new Date(a.dueDate || '1900-01-01').getTime();
+              const dateB = new Date(b.dueDate || '1900-01-01').getTime();
+              return dateB - dateA;
+            }
+            if (this.sortOption === 'district') return (a.district || '').localeCompare(b.district || '', 'ja');
+            return 0;
+          });
+          return list;
+        },
+        todayDate() {
+          const d = new Date();
+          return d.toISOString().split('T')[0];
+        },
+        todayNewItems() {
+          const today = this.todayDate;
+          return this.filteredItems.filter(item => item.receptionDate === today);
+        },
+        pastNewItems() {
+          const today = this.todayDate;
+          return this.filteredItems.filter(item => item.receptionDate !== today);
+        },
+        todayReplacementCount() {
+          // 本日の完了予定（または完了済み）の件数をモックとして算出
+          const today = this.todayDate;
+          return this.items.filter(item => item.dueDate === today || item.completeDate === today).length;
+        },
+        statusDropdownColor() {
+          const colors = ['btn-status-yellow', 'btn-status-blue', 'btn-status-red'];
+          return colors[this.selectedStatusIndex] || 'btn-status-yellow';
+        }
+      },
+      mounted() { this.loadData(); },
+      methods: {
+        selectStatus(event, index, text) {
+          this.selectedStatusIndex = index;
+          this.selectedStatusText = text;
+          // ドロップダウンを手動で閉じる
+          const dropdown = event.target.closest('.dropdown');
+          if (dropdown) {
+            const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(dropdown.querySelector('.dropdown-toggle'));
+            bsDropdown.hide();
+          }
+          // ステータスをスプレッドシートに保存
+          google.script.run.updateStatus(index);
+        },
+        loadData() {
+          this.isLoading = true;
+          google.script.run.withSuccessHandler(res => {
+            this.items = res.items || [];
+            if (this.master.districts.length === 0 && res.master) {
+              this.master = res.master;
+            }
+
+            // ステータス自動判定
+            const today = new Date().toISOString().split('T')[0];
+            const savedStatus = res.status || { index: 0, date: '' };
+
+            // 本日の新規カードがあるかチェック
+            const hasTodayNewItems = this.items.some(item => {
+              const isNew = !item.okamotoDate && !item.completeDate;
+              const isToday = item.receptionDate === today;
+              return isNew && isToday;
+            });
+
+            if (savedStatus.date !== today) {
+              // 日付が変わったのでリセット
+              if (hasTodayNewItems) {
+                this.selectedStatusIndex = 2; // 赤: 新規あり
+                this.selectedStatusText = '以下の鍵が新規に出ました';
+              } else {
+                this.selectedStatusIndex = 0; // 黄: 未更新
+                this.selectedStatusText = '本日の更新作業はまだしておりません';
+              }
+            } else {
+              // 今日のステータスを復元（ただし新規カードが増えたら赤に）
+              if (hasTodayNewItems && savedStatus.index !== 2) {
+                this.selectedStatusIndex = 2;
+                this.selectedStatusText = '以下の鍵が新規に出ました';
+              } else {
+                this.selectedStatusIndex = savedStatus.index;
+                const texts = ['本日の更新作業はまだしておりません', '本日の鍵取り替え作業はありません', '以下の鍵が新規に出ました'];
+                this.selectedStatusText = texts[savedStatus.index] || texts[0];
+              }
+            }
+
+            this.isLoading = false;
+          }).getData();
+        },
+        openAddModal() {
+          const today = new Date();
+          let count = 0; while (count < 7) { today.setDate(today.getDate() + 1); if (today.getDay() !== 0 && today.getDay() !== 6) count++; }
+          const initialDistrict = this.master.districts.length > 0 ? this.master.districts[0] : '';
+          this.newForm = {
+            district: initialDistrict, address: '', roomNo: '', dueDate: today.toISOString().split('T')[0],
+            requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: ''
+          };
+          this.currentAddresses = this.master.addressesByDistrict[initialDistrict] || [];
+          this.previewImage = null;
+          this.itemImageFile = null;
+          if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+          if (!addModalObj) addModalObj = new bootstrap.Modal(document.getElementById('addModal'));
+          addModalObj.show();
+        },
+        onEntranceChange(type) {
+          if (type === 'new' && this.newForm.isNewEntrance === '〇') {
+            this.newForm.isUsedEntrance = '-';
+          } else if (type === 'used' && this.newForm.isUsedEntrance === '〇') {
+            this.newForm.isNewEntrance = '-';
+          }
+        },
+        onDistrictChange() {
+          this.currentAddresses = this.master.addressesByDistrict[this.newForm.district] || [];
+        },
+        onFileChange(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.itemImageFile = file;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            this.previewImage = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        },
+        saveNewItem() {
+          const tempId = 'temp-' + Date.now();
+          const imageData = this.previewImage;
+          const fileName = this.itemImageFile ? this.itemImageFile.name : 'image.jpg';
+
+          const newItem = {
+            id: tempId,
+            receptionNo: '...',
+            ...this.newForm,
+            imageUrl: imageData ? '(UP中)' : '',
+            okamotoDate: '',
+            completeDate: '',
+            pic: ''
+          };
+          this.items.push(newItem);
+          addModalObj.hide();
+          this.isSyncing = true;
+
+          if (imageData) {
+            google.script.run
+              .withSuccessHandler(uploadRes => {
+                if (uploadRes.success) {
+                  this.newForm.imageUrl = uploadRes.url;
+                  const idx = this.items.findIndex(it => it.id === tempId);
+                  if (idx !== -1) this.items[idx].imageUrl = uploadRes.url;
+
+                  google.script.run.withSuccessHandler(res => {
+                    this.isSyncing = false;
+                    if (res.success) {
+                      const idx2 = this.items.findIndex(it => it.id === tempId);
+                      if (idx2 !== -1) {
+                        this.items[idx2].id = res.newId;
+                        this.items[idx2].receptionNo = res.newRecNo;
+                      }
+                    } else { this.loadData(); }
+                  }).addItem(this.newForm);
+                } else {
+                  this.isSyncing = false;
+                  alert('画像アップ失敗: ' + uploadRes.message);
+                  this.loadData();
+                }
+              })
+              .uploadImage(imageData, fileName);
+          } else {
+            this.newForm.imageUrl = '';
+            google.script.run.withSuccessHandler(res => {
+              this.isSyncing = false;
+              if (res.success) {
+                const idx = this.items.findIndex(it => it.id === tempId);
+                if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
+              } else { this.loadData(); }
+            }).addItem(this.newForm);
+          }
+        },
+        openEditModal(item) {
+          this.editingItem = JSON.parse(JSON.stringify(item));
+          this.editMode = false;
+          const today = new Date().toISOString().split('T')[0];
+
+          // 基本情報をeditFormに読み込む（新規・進行中タブ用）
+          this.editForm = {
+            // 基本情報
+            district: item.district || '',
+            address: item.address || '',
+            roomNo: item.roomNo || '',
+            dueDate: item.dueDate || '',
+            requester: item.requester || '',
+            isNewEntrance: item.isNewEntrance || '-',
+            isUsedEntrance: item.isUsedEntrance || '-',
+            storage: item.storage || '-',
+            ps: item.ps || '-',
+            // 進捗情報
+            okamotoDate: item.okamotoDate || today,
+            receiver: item.receiver || '',
+            pic: item.pic || '',
+            completeDate: item.completeDate || today
+          };
+
+          // 住所リストを設定
+          this.editAddresses = this.master.addressesByDistrict[item.district] || [];
+
+          // 写真関連をリセット
+          this.editPreviewImage = null;
+          this.editImageFile = null;
+
+          if (!editModalObj) editModalObj = new bootstrap.Modal(document.getElementById('editModal'));
+          editModalObj.show();
+        },
+        onEditDistrictChange() {
+          this.editAddresses = this.master.addressesByDistrict[this.editForm.district] || [];
+          this.editForm.address = '';
+        },
+        onEditEntranceChange(type) {
+          if (type === 'new' && this.editForm.isNewEntrance === '〇') {
+            this.editForm.isUsedEntrance = '-';
+          } else if (type === 'used' && this.editForm.isUsedEntrance === '〇') {
+            this.editForm.isNewEntrance = '-';
+          }
+        },
+        onEditFileChange(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.editImageFile = file;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            this.editPreviewImage = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        },
+        clearEditImage() {
+          this.editPreviewImage = null;
+          this.editImageFile = null;
+          if (this.$refs.editFileInput) this.$refs.editFileInput.value = '';
+        },
+        saveEdit() {
+          // 詳細表示モード（進行中タブ）で pic 未選択なら中断
+          if (!this.editMode && this.currentTab === 'progress' && !this.editForm.pic) return;
+
+          const idx = this.items.findIndex(it => it.id === this.editingItem.id);
+
+          // ローカル状態を即座に更新（楽観的UI）
+          if (idx !== -1) {
+            // 編集モードの場合は基本情報のみ更新
+            if (this.editMode) {
+              this.items[idx].district = this.editForm.district;
+              this.items[idx].address = this.editForm.address;
+              this.items[idx].roomNo = this.editForm.roomNo;
+              this.items[idx].dueDate = this.editForm.dueDate;
+              this.items[idx].requester = this.editForm.requester;
+              this.items[idx].isNewEntrance = this.editForm.isNewEntrance;
+              this.items[idx].isUsedEntrance = this.editForm.isUsedEntrance;
+              this.items[idx].storage = this.editForm.storage;
+              this.items[idx].ps = this.editForm.ps;
+            } else {
+              // 詳細表示モードでは進捗情報のみ更新
+              if (this.currentTab === 'new') {
+                this.items[idx].okamotoDate = this.editForm.okamotoDate;
+                this.items[idx].receiver = this.editForm.receiver;
+              }
+              if (this.currentTab === 'progress') {
+                this.items[idx].pic = this.editForm.pic;
+                this.items[idx].completeDate = this.editForm.completeDate;
+              }
+            }
+          }
+
+          // サーバーに送信するペイロード
+          let payload = {};
+
+          if (this.editMode) {
+            // 編集モード：基本情報のみ
+            payload = {
+              district: this.editForm.district,
+              address: this.editForm.address,
+              roomNo: this.editForm.roomNo,
+              dueDate: this.editForm.dueDate,
+              requester: this.editForm.requester,
+              isNewEntrance: this.editForm.isNewEntrance,
+              isUsedEntrance: this.editForm.isUsedEntrance,
+              storage: this.editForm.storage,
+              ps: this.editForm.ps
+            };
+          } else {
+            // 詳細表示モード：進捗情報のみ
+            if (this.currentTab === 'new') {
+              payload.okamotoDate = this.editForm.okamotoDate;
+              payload.receiver = this.editForm.receiver;
+            } else if (this.currentTab === 'progress') {
+              payload.pic = this.editForm.pic;
+              payload.completeDate = this.editForm.completeDate;
+            }
+          }
+
+          editModalObj.hide();
+          this.isSyncing = true;
+
+          // 編集モードで新しい写真がある場合は先にアップロード
+          if (this.editMode && this.editPreviewImage) {
+            const imageData = this.editPreviewImage;
+            const fileName = this.editImageFile ? this.editImageFile.name : 'image.jpg';
+            const itemId = this.editingItem.id;
+            const idx = this.items.findIndex(it => it.id === itemId);
+
+            google.script.run
+              .withSuccessHandler(uploadRes => {
+                if (uploadRes.success) {
+                  payload.imageUrl = uploadRes.url;
+                  if (idx !== -1) this.items[idx].imageUrl = uploadRes.url;
+
+                  google.script.run.withSuccessHandler(res => {
+                    this.isSyncing = false;
+                    if (!res.success) { alert("保存失敗"); this.loadData(); }
+                  }).updateItem(itemId, payload);
+                } else {
+                  this.isSyncing = false;
+                  alert('画像アップ失敗: ' + uploadRes.message);
+                  this.loadData();
+                }
+              })
+              .uploadImage(imageData, fileName);
+          } else {
+            google.script.run.withSuccessHandler(res => {
+              this.isSyncing = false;
+              if (!res.success) { alert("保存失敗"); this.loadData(); }
+            }).updateItem(this.editingItem.id, payload);
+          }
+        },
+        formatDateView(dateStr) {
+          if (!dateStr) return '';
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            const y = parseInt(parts[0]);
+            const m = parseInt(parts[1]);
+            const d = parseInt(parts[2]);
+            const eraYear = y - 2018; // 2026 = R8
+            return 'R' + eraYear + '/' + m + '/' + d;
+          }
+          return dateStr;
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+
+</html>

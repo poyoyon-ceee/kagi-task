@@ -1,0 +1,33 @@
+# デフォルト設定：テキストファイルはすべてLFに統一
+* text=auto eol=lf
+
+# 明示的にLFを指定するファイル
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.xml text eol=lf
+*.svg text eol=lf
+*.rs text eol=lf
+*.lock text eol=lf
+
+# バイナリファイル（改行コード変換を無効化）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.exe binary
