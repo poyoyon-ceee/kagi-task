@@ -1,11 +1,20 @@
-// VERSION: dev1.0.0.20260121.4
+// VERSION: dev1.0.0.20260121.5
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';
 const FOLDER_NAME = 'KeyExchange_Images';
 
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
+function doGet(e) {
+  const mode = (e && e.parameter && e.parameter.mode) || 'request';
+  let templateName;
+  
+  if (mode === 'worker') {
+    templateName = 'IndexWorker';
+  } else {
+    templateName = 'IndexRequest';
+  }
+  
+  return HtmlService.createTemplateFromFile(templateName)
     .evaluate()
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setTitle('KeyExchange Manager')
