@@ -1,4 +1,4 @@
-// VERSION: dev1.0.0.20260121.5
+// VERSION: dev1.0.0.20260122.1
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';
@@ -6,8 +6,13 @@ const FOLDER_NAME = 'KeyExchange_Images';
 
 function doGet(e) {
   const mode = (e && e.parameter && e.parameter.mode) || 'request';
-  let templateName;
   
+  if (mode === 'image') {
+    const id = (e && e.parameter && e.parameter.id);
+    return serveImage(id);
+  }
+
+  let templateName;
   if (mode === 'worker') {
     templateName = 'IndexWorker';
   } else {
@@ -245,4 +250,35 @@ function updateStatus(statusIndex) {
     
     return { success: true };
   } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function serveImage(id) {
+  try {
+    if (!id) return HtmlService.createHtmlOutput('No ID provided');
+    const file = DriveApp.getFileById(id);
+    const blob = file.getBlob();
+    const b64 = Utilities.base64Encode(blob.getBytes());
+    const mime = blob.getContentType();
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Image Preview</title>
+        <style>
+          body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+          img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        </style>
+      </head>
+      <body>
+        <img src="data:${mime};base64,${b64}">
+      </body>
+      </html>
+    `;
+    return HtmlService.createHtmlOutput(html)
+      .setTitle('Image Preview')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  } catch (e) {
+    return HtmlService.createHtmlOutput('<p style="color:red; background:white; padding:20px;">Error loading image: ' + e.toString() + '</p>');
+  }
 }

@@ -481,7 +481,7 @@
                 <span class="room-no text-primary">{{ item.roomNo }}</span>
               </div>
               <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
-                @click.stop="window.open(item.imageUrl)">
+                @click.stop="openImageProxied(item.imageUrl)">
                 <i class="bi bi-image-fill fs-5"></i>
                 <span class="small fw-bold">写真</span>
               </div>
@@ -513,7 +513,7 @@
                 <span class="room-no text-primary">{{ item.roomNo }}</span>
               </div>
               <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
-                @click.stop="window.open(item.imageUrl)">
+                @click.stop="openImageProxied(item.imageUrl)">
                 <i class="bi bi-image-fill fs-5"></i>
                 <span class="small fw-bold">写真</span>
               </div>
@@ -587,7 +587,7 @@
         </div>
 
         <div class="version-tag">
-          dev1.0.0.20260120.1
+          dev1.0.0.20260122.1
         </div>
       </div>
 
@@ -759,7 +759,8 @@
 
                 <!-- 写真リンク -->
                 <div v-if="editingItem.imageUrl" class="mb-3">
-                  <a :href="editingItem.imageUrl" target="_blank" class="btn btn-outline-primary w-100">
+                  <a href="javascript:void(0)" @click.prevent="openImageProxied(editingItem.imageUrl)"
+                    class="btn btn-outline-primary w-100">
                     <i class="bi bi-image me-2"></i>写真を確認する
                   </a>
                 </div>
@@ -880,6 +881,7 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const SCRIPT_URL = "<?= ScriptApp.getService().getUrl() ?>";
     const { createApp } = Vue;
     let addModalObj, editModalObj;
 
@@ -1242,6 +1244,22 @@
               this.isSyncing = false;
               if (!res.success) { alert("保存失敗"); this.loadData(); }
             }).updateItem(this.editingItem.id, payload);
+          }
+        },
+        openImageProxied(url) {
+          if (!url) return;
+          let id = '';
+          const match1 = url.match(/id=([a-zA-Z0-9_-]+)/);
+          if (match1) id = match1[1];
+          else {
+            const match2 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match2) id = match2[1];
+          }
+
+          if (id && typeof SCRIPT_URL !== 'undefined') {
+            window.open(SCRIPT_URL + '?mode=image&id=' + id);
+          } else {
+            window.open(url);
           }
         },
         formatDateView(dateStr) {
