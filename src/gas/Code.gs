@@ -1,4 +1,4 @@
-// VERSION: dev1.0.0.20260122.1
+// VERSION: dev1.0.0.20260122.3
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';

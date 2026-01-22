@@ -443,15 +443,15 @@
         </div>
 
         <div v-if="currentTab === 'new'">
-          <!-- 本日の更新内容（作業グループ：読み取り専用） -->
-          <div class="section-title">本日の更新内容</div>
+          <!-- すべての追加内容（作業グループ：読み取り専用） -->
+          <div class="section-title">すべての追加内容</div>
           <div class="mb-3">
             <div class="status-select-toggle" :class="statusDropdownColor" style="cursor: default;">
               {{ selectedStatusText }}
             </div>
           </div>
 
-          <div v-for="item in todayNewItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
+          <div v-for="item in filteredItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
             <div class="d-flex align-items-center justify-content-between">
               <div class="d-flex align-items-center flex-wrap gap-2">
                 <span class="reception-no">#{{ item.receptionNo }}</span>
@@ -481,39 +481,7 @@
             </div>
           </div>
 
-          <!-- 昨日までの更新内容 -->
-          <div class="section-title">昨日までの更新内容</div>
-          <div v-for="item in pastNewItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center flex-wrap gap-2">
-                <span class="reception-no">#{{ item.receptionNo }}</span>
-                <span class="district-badge">{{ item.district }}</span>
-                <span class="address-text">{{ item.address }}</span>
-                <span class="room-no text-primary">{{ item.roomNo }}</span>
-              </div>
-              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
-                @click.stop="openImageProxied(item.imageUrl)">
-                <i class="bi bi-image-fill fs-5"></i>
-                <span class="small fw-bold">写真</span>
-              </div>
-            </div>
-            <div class="info-line">
-              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
-                  item.isNewEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
-                  item.isUsedEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
-                  item.storage }}</span></div>
-              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
-                  }}</span></div>
-              <div class="small-meta text-end">
-                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
-                  formatDateView(item.dueDate) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="todayNewItems.length === 0 && pastNewItems.length === 0" class="text-center py-5">
+          <div v-if="filteredItems.length === 0" class="text-center py-5">
             <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
             <p class="text-muted">新規案件はありません</p>
           </div>
@@ -566,7 +534,7 @@
         </div>
 
         <div class="version-tag">
-          dev1.0.0.20260122.1
+          dev1.0.0.20260122.3
         </div>
       </div>
 
