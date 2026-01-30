@@ -418,7 +418,7 @@
         <div class="container d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
-            <h5 class="mb-0 fw-bold">鍵取替管理 - 依頼グループ</h5>
+            <h5 class="mb-0 fw-bold">鍵取替管理 - 依頼</h5>
           </div>
           <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
             <i class="bi bi-arrow-clockwise me-1"></i>更新
@@ -565,7 +565,7 @@
         </div>
 
         <div class="version-tag">
-          dev1.0.0.20260130.2
+          dev1.0.0.20260130.4
         </div>
       </div>
 
@@ -644,8 +644,14 @@
                 </div>
               </div>
 
+              <!-- 備考 -->
+              <div class="mb-3">
+                <label class="small fw-bold mb-1">備考</label>
+                <textarea v-model="newForm.note" class="form-control" rows="3" placeholder="自由に入力してください"></textarea>
+              </div>
+
               <div class="mb-4">
-                <label class="small fw-bold mb-1">書類写真</label>
+                <label class="small fw-bold mb-1">書類写真（カメラ起動 / ファイル選択）</label>
                 <input type="file" ref="fileInput" accept="image/*" capture="environment" class="form-control"
                   @change="onFileChange">
                 <div v-if="previewImage" class="mt-2 rounded overflow-hidden border">
@@ -741,9 +747,13 @@
                     <span class="text-muted">完了日:</span>
                     <span class="fw-bold">{{ editingItem.completeDate || '-' }}</span>
                   </div>
-                  <div class="d-flex justify-content-between">
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">返却担当:</span>
                     <span class="fw-bold">{{ editingItem.returner || '-' }}</span>
+                  </div>
+                  <div class="border-top mt-2 pt-2">
+                    <div class="text-muted x-small mb-1">備考:</div>
+                    <div class="fw-bold white-space-pre">{{ editingItem.note || '-' }}</div>
                   </div>
                 </div>
 
@@ -832,6 +842,12 @@
                   </div>
                 </div>
 
+                <!-- 備考編集 -->
+                <div class="mb-3">
+                  <label class="small fw-bold mb-1">備考</label>
+                  <textarea v-model="editForm.note" class="form-control form-control-sm" rows="3"></textarea>
+                </div>
+
                 <!-- 写真の撮り直し -->
                 <div class="mb-3">
                   <label class="small fw-bold mb-1">写真</label>
@@ -893,7 +909,7 @@
           sortOption: 'recDesc',
           currentAddresses: [],
           editAddresses: [],
-          newForm: { district: '', address: '', roomNo: '', dueDate: '', requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '-', ps: '-', imageUrl: '' },
+          newForm: { district: '', address: '', roomNo: '', dueDate: '', requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '-', ps: '-', imageUrl: '', note: '' },
           previewImage: null,
           itemImageFile: null,
           editingItem: null, editForm: {},
@@ -1022,7 +1038,7 @@
           const initialDistrict = this.master.districts.length > 0 ? this.master.districts[0] : '';
           this.newForm = {
             district: initialDistrict, address: '', roomNo: '', dueDate: today.toISOString().split('T')[0],
-            requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '1', ps: '-', imageUrl: ''
+            requester: '', isNewEntrance: '-', isUsedEntrance: '-', storage: '-', ps: '-', imageUrl: ''
           };
           this.currentAddresses = this.master.addressesByDistrict[initialDistrict] || [];
           this.previewImage = null;
@@ -1138,10 +1154,11 @@
             storage: item.storage || '-',
             ps: item.ps || '-',
             // 進捗情報
-            okamotoDate: item.okamotoDate || today,
+            okamotoDate: item.okamotoDate || '',
             receiver: item.receiver || '',
             pic: item.pic || '',
-            completeDate: item.completeDate || today
+            completeDate: item.completeDate || '',
+            note: item.note || ''
           };
 
           // 住所リストを設定
@@ -1199,6 +1216,7 @@
               this.items[idx].isUsedEntrance = this.editForm.isUsedEntrance;
               this.items[idx].storage = this.editForm.storage;
               this.items[idx].ps = this.editForm.ps;
+              this.items[idx].note = this.editForm.note;
             } else {
               // 詳細表示モードでは進捗情報のみ更新
               if (this.currentTab === 'new') {
@@ -1226,7 +1244,8 @@
               isNewEntrance: this.editForm.isNewEntrance,
               isUsedEntrance: this.editForm.isUsedEntrance,
               storage: this.editForm.storage,
-              ps: this.editForm.ps
+              ps: this.editForm.ps,
+              note: this.editForm.note
             };
           } else {
             // 詳細表示モード：進捗情報のみ

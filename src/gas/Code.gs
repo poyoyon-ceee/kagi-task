@@ -1,4 +1,4 @@
-// VERSION: dev1.0.0.20260130.3
+// VERSION: dev1.0.0.20260130.4
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';
@@ -62,7 +62,8 @@ function getData() {
         requester: String(row[15] || ''),
         receiver: String(row[16] || ''),
         keyKeeper: String(row[18] || ''),
-        returner: String(row[19] || '')
+        returner: String(row[19] || ''),
+        note: String(row[20] || '')
       };
     }).filter(item => item !== null);
 
@@ -162,12 +163,13 @@ function addItem(newItem) {
       newItem.ps,
       "", "", "",
       newItem.imageUrl || "",
-      // 新規追加列（P列・Q列・R列・S列・T列）
+      // 新規追加列（P列・Q列・R列・S列・T列・U列）
       newItem.requester || "",
       "",  // receiver は後で入力
       "",   // returnDate (R列) は後で入力
       "",  // keyKeeper (S列) は後で入力
-      ""   // returner (T列) は後で入力
+      "",   // returner (T列) は後で入力
+      newItem.note || "" // note (U列)
     ];
     sheet.appendRow(row);
     return { success: true, newId: String(nextId), newRecNo: String(nextRecNo) };
@@ -232,6 +234,7 @@ function updateItem(id, updateData) {
     if (updateData.returnDate !== undefined) sheet.getRange(rowNum, 18).setValue(updateData.returnDate);
     if (updateData.keyKeeper !== undefined) sheet.getRange(rowNum, 19).setValue(updateData.keyKeeper);
     if (updateData.returner !== undefined) sheet.getRange(rowNum, 20).setValue(updateData.returner);
+    if (updateData.note !== undefined) sheet.getRange(rowNum, 21).setValue(updateData.note);
     
     return { success: true };
   } catch (e) { return { success: false, message: e.toString() }; }

@@ -418,7 +418,7 @@
         <div class="container d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
-            <h5 class="mb-0 fw-bold">鍵取替管理 - 作業グループ</h5>
+            <h5 class="mb-0 fw-bold">鍵取替管理 - 作業</h5>
           </div>
           <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
             <i class="bi bi-arrow-clockwise me-1"></i>更新
@@ -714,9 +714,13 @@
                     <span class="text-muted">完了日:</span>
                     <span class="fw-bold">{{ editingItem.completeDate || '-' }}</span>
                   </div>
-                  <div class="d-flex justify-content-between">
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">返却担当:</span>
                     <span class="fw-bold">{{ editingItem.returner || '-' }}</span>
+                  </div>
+                  <div class="border-top mt-2 pt-2">
+                    <div class="text-muted x-small mb-1">備考:</div>
+                    <div class="fw-bold white-space-pre">{{ editingItem.note || '-' }}</div>
                   </div>
                 </div>
 
@@ -1112,7 +1116,8 @@
               isNewEntrance: this.editForm.isNewEntrance,
               isUsedEntrance: this.editForm.isUsedEntrance,
               storage: this.editForm.storage,
-              ps: this.editForm.ps
+              ps: this.editForm.ps,
+              note: this.editForm.note
             };
           } else {
             // 詳細表示モード：進捗情報のみ
