@@ -1,4 +1,4 @@
-// VERSION: dev1.0.0.20260122.3
+// VERSION: dev1.0.0.20260130.3
 const SHEET_ID = '1ZFpJtweMHXH6zUHM10NQxchkvb_dif2WClbYcybzsiw'; 
 const SHEET_NAME = 'main';
 const CONFIG_SHEET_NAME = 'config';
@@ -57,9 +57,12 @@ function getData() {
         pic: String(row[12] || ''),
         completeDate: formatDate(row[13]),
         imageUrl: String(row[14] || ''),
-        // 新規追加列（P列・Q列）
+        returnDate: formatDate(row[17]), // 新規追加列（R列）
+        // 新規追加列（P列・Q列・S列・T列）
         requester: String(row[15] || ''),
-        receiver: String(row[16] || '')
+        receiver: String(row[16] || ''),
+        keyKeeper: String(row[18] || ''),
+        returner: String(row[19] || '')
       };
     }).filter(item => item !== null);
 
@@ -159,9 +162,12 @@ function addItem(newItem) {
       newItem.ps,
       "", "", "",
       newItem.imageUrl || "",
-      // 新規追加列（P列・Q列）
+      // 新規追加列（P列・Q列・R列・S列・T列）
       newItem.requester || "",
-      ""  // receiver は後で入力
+      "",  // receiver は後で入力
+      "",   // returnDate (R列) は後で入力
+      "",  // keyKeeper (S列) は後で入力
+      ""   // returner (T列) は後で入力
     ];
     sheet.appendRow(row);
     return { success: true, newId: String(nextId), newRecNo: String(nextRecNo) };
@@ -217,12 +223,15 @@ function updateItem(id, updateData) {
     if (updateData.ps !== undefined) sheet.getRange(rowNum, 11).setValue(updateData.ps);
     if (updateData.requester !== undefined) sheet.getRange(rowNum, 16).setValue(updateData.requester);
     
-    // 進捗情報の更新（L列, M列, N列, O列, Q列）
+    // 進捗情報の更新（L列, M列, N列, O列, Q列, R列）
     if (updateData.okamotoDate !== undefined) sheet.getRange(rowNum, 12).setValue(updateData.okamotoDate);
     if (updateData.receiver !== undefined) sheet.getRange(rowNum, 17).setValue(updateData.receiver);
     if (updateData.pic !== undefined) sheet.getRange(rowNum, 13).setValue(updateData.pic);
     if (updateData.completeDate !== undefined) sheet.getRange(rowNum, 14).setValue(updateData.completeDate);
     if (updateData.imageUrl !== undefined) sheet.getRange(rowNum, 15).setValue(updateData.imageUrl);
+    if (updateData.returnDate !== undefined) sheet.getRange(rowNum, 18).setValue(updateData.returnDate);
+    if (updateData.keyKeeper !== undefined) sheet.getRange(rowNum, 19).setValue(updateData.keyKeeper);
+    if (updateData.returner !== undefined) sheet.getRange(rowNum, 20).setValue(updateData.returner);
     
     return { success: true };
   } catch (e) { return { success: false, message: e.toString() }; }
@@ -282,3 +291,25 @@ function serveImage(id) {
     return HtmlService.createHtmlOutput('<p style="color:red; background:white; padding:20px;">Error loading image: ' + e.toString() + '</p>');
   }
 }
+
+/**
+ * 案件を削除する
+ */
+function deleteItem(itemId) {
+  try {
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    const values = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(itemId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true };
+      }
+    }
+    
+    return { success: false, message: '削除対象が見つかりません' };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+}
+

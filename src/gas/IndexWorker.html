@@ -102,6 +102,14 @@
       background-color: var(--success-color);
     }
 
+    .status-accepted::before {
+      background-color: var(--info-color);
+    }
+
+    .status-returned::before {
+      background-color: var(--secondary-color);
+    }
+
     .reception-no {
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -410,7 +418,7 @@
         <div class="container d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
-            <h5 class="mb-0 fw-bold">鍵取替管理</h5>
+            <h5 class="mb-0 fw-bold">鍵取替管理 - 作業グループ</h5>
           </div>
           <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
             <i class="bi bi-arrow-clockwise me-1"></i>更新
@@ -419,11 +427,13 @@
       </header>
 
       <div class="container">
-        <ul class="nav nav-pills nav-fill">
-          <li v-for="tab in ['new', 'progress', 'done']" :key="tab" class="nav-item">
+        <ul class="nav nav-pills nav-fill" style="overflow-x: auto; flex-wrap: nowrap; gap: 4px;">
+          <li v-for="tab in ['new', 'accepted', 'progress', 'done', 'returned']" :key="tab" class="nav-item"
+            style="min-width: 70px;">
             <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
-              href="javascript:void(0)">
-              {{ tab === 'new' ? '新規' : tab === 'progress' ? '進行中' : '完了' }}
+              href="javascript:void(0)" style="white-space: nowrap; font-size: 0.85rem; padding: 8px 4px;">
+              {{ tab === 'new' ? '新規' : tab === 'accepted' ? '受付済' : tab === 'progress' ? '作業中' : tab === 'done' ? '完了'
+              : '返却済' }}
             </a>
           </li>
         </ul>
@@ -534,7 +544,7 @@
         </div>
 
         <div class="version-tag">
-          dev1.0.0.20260122.3
+          dev1.0.0.20260130.2
         </div>
       </div>
 
@@ -689,6 +699,10 @@
                     <span class="fw-bold">{{ editingItem.okamotoDate || '-' }}</span>
                   </div>
                   <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">鍵預かり:</span>
+                    <span class="fw-bold">{{ editingItem.keyKeeper || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">受取担当者:</span>
                     <span class="fw-bold">{{ editingItem.receiver || '-' }}</span>
                   </div>
@@ -696,9 +710,13 @@
                     <span class="text-muted">完了担当者:</span>
                     <span class="fw-bold">{{ editingItem.pic || '-' }}</span>
                   </div>
-                  <div class="d-flex justify-content-between">
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">完了日:</span>
                     <span class="fw-bold">{{ editingItem.completeDate || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted">返却担当:</span>
+                    <span class="fw-bold">{{ editingItem.returner || '-' }}</span>
                   </div>
                 </div>
 
@@ -710,11 +728,11 @@
                   </a>
                 </div>
 
-                <!-- 進捗更新セクション（新規・進行中タブのみ） -->
+                <!-- 進捗更新セクション（各タブの次のステップを表示） -->
+
+                <!-- 新規タブ -> 受付済へ -->
                 <div v-if="currentTab === 'new'" class="border-top pt-3">
-                  <div class="small text-muted mb-2">進捗を更新</div>
-                  <label class="small fw-bold mb-1">MMS受取日</label>
-                  <input type="date" v-model="editForm.okamotoDate" class="form-control mb-3">
+                  <div class="small text-muted mb-2">受付処理（担当割当）</div>
                   <label class="small fw-bold mb-1">受取担当者</label>
                   <select v-model="editForm.receiver" class="form-select mb-3">
                     <option value="">選択してください</option>
@@ -722,6 +740,19 @@
                   </select>
                 </div>
 
+                <!-- 受付済タブ -> 作業中へ -->
+                <div v-if="currentTab === 'accepted'" class="border-top pt-3">
+                  <div class="small text-muted mb-2">鍵受取確認</div>
+                  <label class="small fw-bold mb-1">MMS受取日</label>
+                  <input type="date" v-model="editForm.okamotoDate" class="form-control mb-3">
+                  <label class="small fw-bold mb-1">鍵預かり者 <span class="text-danger">*</span></label>
+                  <select v-model="editForm.keyKeeper" class="form-select mb-3">
+                    <option value="">選択してください</option>
+                    <option v-for="p in master.staffs" :value="p">{{ p }}</option>
+                  </select>
+                </div>
+
+                <!-- 作業中タブ -> 完了へ -->
                 <div v-if="currentTab === 'progress'" class="border-top pt-3">
                   <div class="small text-muted mb-2">完了報告</div>
                   <div class="mb-3">
@@ -737,11 +768,28 @@
                   </div>
                 </div>
 
-                <!-- ボタンエリア（作業グループ：進捗更新ボタンのみ） -->
-                <div class="d-flex gap-2 mt-3" v-if="currentTab !== 'done'">
+                <!-- 完了タブ -> 返却済へ（親機返却） -->
+                <div v-if="currentTab === 'done'" class="border-top pt-3">
+                  <div class="small text-muted mb-2">親機返却確認</div>
+                  <div class="mb-3">
+                    <label class="small fw-bold mb-1">返却担当者 <span class="text-danger">*</span></label>
+                    <select v-model="editForm.returner" class="form-select mb-2">
+                      <option value="">選択してください</option>
+                      <option v-for="p in master.staffs" :value="p">{{ p }}</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="small fw-bold mb-1">返却日</label>
+                    <input type="date" v-model="editForm.returnDate" class="form-control">
+                  </div>
+                </div>
+
+                <!-- ボタンエリア -->
+                <div class="d-flex gap-2 mt-3" v-if="currentTab !== 'returned'">
                   <button class="btn btn-primary w-100" @click="saveEdit"
-                    :disabled="currentTab === 'progress' && !editForm.pic">
-                    {{ currentTab === 'new' ? '進捗を更新' : '完了報告' }}
+                    :disabled="currentTab === 'new' && !editForm.receiver || currentTab === 'accepted' && (!editForm.okamotoDate || !editForm.keyKeeper) || currentTab === 'progress' && !editForm.pic || currentTab === 'done' && (!editForm.returnDate || !editForm.returner)">
+                    {{ currentTab === 'new' ? '受付済にする' : currentTab === 'accepted' ? '作業中（受取済）にする' : currentTab ===
+                    'progress' ? '完了報告' : '返却済にする' }}
                   </button>
                 </div>
               </div>
@@ -785,8 +833,12 @@
         filteredItems() {
           let list = this.items.filter(item => {
             let status = 'new';
-            if (item.completeDate && item.completeDate !== "") status = 'done';
+            if (item.returnDate && item.returnDate !== "") status = 'returned';
+            else if (item.completeDate && item.completeDate !== "") status = 'done';
+            else if (item.pic && item.pic !== "") status = 'progress'; // 旧互換: picがあればprogressとみなす場合もあるが、ロジック的にはokamotoDate推奨
             else if (item.okamotoDate && item.okamotoDate !== "") status = 'progress';
+            else if (item.receiver && item.receiver !== "") status = 'accepted';
+
             return status === this.currentTab;
           });
           list.sort((a, b) => {
@@ -964,8 +1016,11 @@
             // 進捗情報
             okamotoDate: item.okamotoDate || today,
             receiver: item.receiver || '',
+            keyKeeper: item.keyKeeper || '',
             pic: item.pic || '',
-            completeDate: item.completeDate || today
+            completeDate: item.completeDate || today,
+            returnDate: item.returnDate || today,
+            returner: item.returner || ''
           };
 
           // 住所リストを設定
@@ -1026,12 +1081,19 @@
             } else {
               // 詳細表示モードでは進捗情報のみ更新
               if (this.currentTab === 'new') {
-                this.items[idx].okamotoDate = this.editForm.okamotoDate;
                 this.items[idx].receiver = this.editForm.receiver;
+              }
+              if (this.currentTab === 'accepted') {
+                this.items[idx].okamotoDate = this.editForm.okamotoDate;
+                this.items[idx].keyKeeper = this.editForm.keyKeeper;
               }
               if (this.currentTab === 'progress') {
                 this.items[idx].pic = this.editForm.pic;
                 this.items[idx].completeDate = this.editForm.completeDate;
+              }
+              if (this.currentTab === 'done') {
+                this.items[idx].returnDate = this.editForm.returnDate;
+                this.items[idx].returner = this.editForm.returner;
               }
             }
           }
@@ -1055,11 +1117,16 @@
           } else {
             // 詳細表示モード：進捗情報のみ
             if (this.currentTab === 'new') {
-              payload.okamotoDate = this.editForm.okamotoDate;
               payload.receiver = this.editForm.receiver;
+            } else if (this.currentTab === 'accepted') {
+              payload.okamotoDate = this.editForm.okamotoDate;
+              payload.keyKeeper = this.editForm.keyKeeper;
             } else if (this.currentTab === 'progress') {
               payload.pic = this.editForm.pic;
               payload.completeDate = this.editForm.completeDate;
+            } else if (this.currentTab === 'done') {
+              payload.returnDate = this.editForm.returnDate;
+              payload.returner = this.editForm.returner;
             }
           }
 

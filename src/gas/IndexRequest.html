@@ -102,6 +102,14 @@
       background-color: var(--success-color);
     }
 
+    .status-accepted::before {
+      background-color: var(--info-color);
+    }
+
+    .status-returned::before {
+      background-color: var(--secondary-color);
+    }
+
     .reception-no {
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -410,7 +418,7 @@
         <div class="container d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
-            <h5 class="mb-0 fw-bold">鍵取替管理</h5>
+            <h5 class="mb-0 fw-bold">鍵取替管理 - 依頼グループ</h5>
           </div>
           <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
             <i class="bi bi-arrow-clockwise me-1"></i>更新
@@ -419,11 +427,13 @@
       </header>
 
       <div class="container">
-        <ul class="nav nav-pills nav-fill">
-          <li v-for="tab in ['new', 'progress', 'done']" :key="tab" class="nav-item">
+        <ul class="nav nav-pills nav-fill" style="overflow-x: auto; flex-wrap: nowrap; gap: 4px;">
+          <li v-for="tab in ['new', 'accepted', 'progress', 'done', 'returned']" :key="tab" class="nav-item"
+            style="min-width: 70px;">
             <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
-              href="javascript:void(0)">
-              {{ tab === 'new' ? '新規' : tab === 'progress' ? '進行中' : '完了' }}
+              href="javascript:void(0)" style="white-space: nowrap; font-size: 0.85rem; padding: 8px 4px;">
+              {{ tab === 'new' ? '新規' : tab === 'accepted' ? '受付済' : tab === 'progress' ? '作業中' : tab === 'done' ? '完了'
+              : '返却済' }}
             </a>
           </li>
         </ul>
@@ -555,7 +565,7 @@
         </div>
 
         <div class="version-tag">
-          dev1.0.0.20260122.3
+          dev1.0.0.20260130.2
         </div>
       </div>
 
@@ -712,6 +722,14 @@
                     <span class="fw-bold">{{ editingItem.okamotoDate || '-' }}</span>
                   </div>
                   <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">MMS受取日:</span>
+                    <span class="fw-bold">{{ editingItem.okamotoDate || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">鍵預かり:</span>
+                    <span class="fw-bold">{{ editingItem.keyKeeper || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">受取担当者:</span>
                     <span class="fw-bold">{{ editingItem.receiver || '-' }}</span>
                   </div>
@@ -719,9 +737,13 @@
                     <span class="text-muted">完了担当者:</span>
                     <span class="fw-bold">{{ editingItem.pic || '-' }}</span>
                   </div>
-                  <div class="d-flex justify-content-between">
+                  <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">完了日:</span>
                     <span class="fw-bold">{{ editingItem.completeDate || '-' }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted">返却担当:</span>
+                    <span class="fw-bold">{{ editingItem.returner || '-' }}</span>
                   </div>
                 </div>
 
@@ -734,7 +756,7 @@
                 </div>
 
                 <!-- ボタンエリア（依頼グループ：編集ボタンのみ） -->
-                <div class="d-flex gap-2 mt-3" v-if="currentTab !== 'done'">
+                <div class="d-flex gap-2 mt-3" v-if="currentTab !== 'done' && currentTab !== 'returned'">
                   <button class="btn btn-primary w-100" @click="editMode = true">
                     <i class="bi bi-pencil me-1"></i>内容を編集
                   </button>
@@ -839,6 +861,16 @@
                 </div>
               </div>
 
+              <!-- 詳細表示モード -->
+              <div v-else>
+                <!-- 削除ボタン -->
+                <div class="d-flex gap-2 mt-4">
+                  <button class="btn btn-danger" @click="deleteItem">
+                    <i class="bi bi-trash me-1"></i>削除
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -876,8 +908,12 @@
         filteredItems() {
           let list = this.items.filter(item => {
             let status = 'new';
-            if (item.completeDate && item.completeDate !== "") status = 'done';
+            if (item.returnDate && item.returnDate !== "") status = 'returned';
+            else if (item.completeDate && item.completeDate !== "") status = 'done';
+            else if (item.pic && item.pic !== "") status = 'progress'; // 旧互換
             else if (item.okamotoDate && item.okamotoDate !== "") status = 'progress';
+            else if (item.receiver && item.receiver !== "") status = 'accepted';
+
             return status === this.currentTab;
           });
           list.sort((a, b) => {
@@ -1049,7 +1085,13 @@
                         this.items[idx2].id = res.newId;
                         this.items[idx2].receptionNo = res.newRecNo;
                       }
-                    } else { this.loadData(); }
+                      // ステータスを自動更新
+                      this.selectedStatusIndex = 2;
+                      this.selectedStatusText = '以下の鍵が新規で出ました';
+                      this.saveStatus();
+                    } else {
+                      this.loadData();
+                    }
                   }).addItem(this.newForm);
                 } else {
                   this.isSyncing = false;
@@ -1064,8 +1106,17 @@
               this.isSyncing = false;
               if (res.success) {
                 const idx = this.items.findIndex(it => it.id === tempId);
-                if (idx !== -1) { this.items[idx].id = res.newId; this.items[idx].receptionNo = res.newRecNo; }
-              } else { this.loadData(); }
+                if (idx !== -1) {
+                  this.items[idx].id = res.newId;
+                  this.items[idx].receptionNo = res.newRecNo;
+                }
+                // ステータスを自動更新
+                this.selectedStatusIndex = 2;
+                this.selectedStatusText = '以下の鍵が新規で出ました';
+                this.saveStatus();
+              } else {
+                this.loadData();
+              }
             }).addItem(this.newForm);
           }
         },
@@ -1221,6 +1272,25 @@
               if (!res.success) { alert("保存失敗"); this.loadData(); }
             }).updateItem(this.editingItem.id, payload);
           }
+        },
+        deleteItem() {
+          if (!confirm('この案件を削除してもよろしいですか？')) return;
+
+          const itemId = this.editingItem.id;
+          this.isSyncing = true;
+          editModalObj.hide();
+
+          google.script.run.withSuccessHandler(res => {
+            this.isSyncing = false;
+            if (res.success) {
+              const idx = this.items.findIndex(it => it.id === itemId);
+              if (idx !== -1) this.items.splice(idx, 1);
+              alert('削除しました');
+            } else {
+              alert('削除に失敗しました: ' + res.message);
+              this.loadData();
+            }
+          }).deleteItem(itemId);
         },
         openImageProxied(url) {
           if (!url) return;
