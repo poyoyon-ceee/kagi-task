@@ -401,6 +401,62 @@
       z-index: 2000;
       animation: pulse 1.5s infinite;
     }
+
+    /* ログイン画面 */
+    .login-container {
+      max-width: 360px;
+      margin: 80px auto;
+      text-align: center;
+      padding: 2.5rem;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .login-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    .login-title {
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .login-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .login-input {
+      text-align: center;
+      font-size: 1.2rem;
+      letter-spacing: 0.2em;
+      padding: 12px;
+    }
+
+    .login-btn {
+      background: linear-gradient(135deg, var(--primary-color), #0056b3);
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .login-btn:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 
@@ -408,170 +464,186 @@
   <div id="app">
     <div v-if="isSyncing" class="sync-bar"></div>
 
-    <div v-if="isLoading" class="text-center" style="margin-top: 20vh;">
-      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-      <p class="mt-3 text-muted">データを読み込み中...</p>
+    <!-- ログイン画面 -->
+    <div v-if="!isAuthenticated" class="container">
+      <div class="login-container">
+        <div class="login-icon">🔑</div>
+        <h3 class="login-title">鍵取替管理 - 依頼</h3>
+        <p class="login-subtitle">アクセスするにはパスワードを入力してください</p>
+        <input type="password" v-model="inputPass" class="form-control login-input mb-3" placeholder="••••"
+          @keyup.enter="login">
+        <button @click="login" class="btn login-btn w-100">ログイン</button>
+        <div class="version-tag mt-4">dev1.0.0.20260202.1</div>
+      </div>
     </div>
 
     <div v-else>
-      <header class="app-header">
-        <div class="container d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
-            <h5 class="mb-0 fw-bold">鍵取替管理 - 依頼</h5>
-          </div>
-          <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
-            <i class="bi bi-arrow-clockwise me-1"></i>更新
-          </button>
-        </div>
-      </header>
+      <div v-if="isLoading" class="text-center" style="margin-top: 20vh;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <p class="mt-3 text-muted">データを読み込み中...</p>
+      </div>
 
-      <div class="container">
-        <ul class="nav nav-pills nav-fill" style="overflow-x: auto; flex-wrap: nowrap; gap: 4px;">
-          <li v-for="tab in ['new', 'accepted', 'progress', 'done', 'returned']" :key="tab" class="nav-item"
-            style="min-width: 70px;">
-            <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
-              href="javascript:void(0)" style="white-space: nowrap; font-size: 0.85rem; padding: 8px 4px;">
-              {{ tab === 'new' ? '新規' : tab === 'accepted' ? '受付済' : tab === 'progress' ? '作業中' : tab === 'done' ? '完了'
-              : '返却済' }}
-            </a>
-          </li>
-        </ul>
-
-        <div class="d-flex justify-content-between mb-3 align-items-center">
-          <div class="small text-muted">全 {{ filteredItems.length }} 件</div>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-sort-down me-2 text-muted"></i>
-            <select v-model="sortOption" class="form-select form-select-sm w-auto border-0 bg-transparent fw-bold"
-              style="box-shadow: none;">
-              <option value="recDesc">受付No新しい順</option>
-              <option value="recAsc">受付No古い順</option>
-              <option value="dateDesc">期限の新しい順</option>
-              <option value="district">地区順</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="currentTab === 'new'">
-          <!-- すべての追加内容（単一セレクトボックス） -->
-          <div class="section-title">すべての追加内容</div>
-          <div class="dropdown mb-3">
-            <button class="status-select-toggle dropdown-toggle" :class="statusDropdownColor" type="button"
-              data-bs-toggle="dropdown">
-              {{ selectedStatusText }}
+      <div v-else>
+        <header class="app-header">
+          <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-key-fill text-primary fs-4 me-2"></i>
+              <h5 class="mb-0 fw-bold">鍵取替管理 - 依頼</h5>
+            </div>
+            <button class="btn btn-sm btn-light rounded-pill px-3 border" @click="loadData">
+              <i class="bi bi-arrow-clockwise me-1"></i>更新
             </button>
-            <ul class="dropdown-menu dropdown-menu-status">
-              <li>
-                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 0}" href="#"
-                  @click.prevent="selectStatus($event, 0, '本日の更新作業はまだしておりません')">
-                  本日の更新作業はまだしておりません
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 1}" href="#"
-                  @click.prevent="selectStatus($event, 1, '本日の鍵取り替え作業はありません')">
-                  本日の鍵取り替え作業はありません
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 2}" href="#"
-                  @click.prevent="selectStatus($event, 2, '以下の鍵が新規に出ました')">
-                  以下の鍵が新規に出ました
-                </a>
-              </li>
-            </ul>
           </div>
+        </header>
 
-          <div v-for="item in filteredItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center flex-wrap gap-2">
-                <span class="reception-no">#{{ item.receptionNo }}</span>
-                <span class="district-badge">{{ item.district }}</span>
-                <span class="address-text">{{ item.address }}</span>
-                <span class="room-no text-primary">{{ item.roomNo }}</span>
-              </div>
-              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
-                @click.stop="openImageProxied(item.imageUrl)">
-                <i class="bi bi-image-fill fs-5"></i>
-                <span class="small fw-bold">写真</span>
-              </div>
-            </div>
-            <div class="info-line">
-              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
-                  item.isNewEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
-                  item.isUsedEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
-                  item.storage }}</span></div>
-              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
-                  }}</span></div>
-              <div class="small-meta text-end">
-                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
-                  formatDateView(item.dueDate) }}</div>
-              </div>
+        <div class="container">
+          <ul class="nav nav-pills nav-fill" style="overflow-x: auto; flex-wrap: nowrap; gap: 4px;">
+            <li v-for="tab in ['new', 'accepted', 'progress', 'done', 'returned']" :key="tab" class="nav-item"
+              style="min-width: 70px;">
+              <a class="nav-link" :class="{active: currentTab === tab}" @click="currentTab = tab"
+                href="javascript:void(0)" style="white-space: nowrap; font-size: 0.85rem; padding: 8px 4px;">
+                {{ tab === 'new' ? '新規' : tab === 'accepted' ? '受付済' : tab === 'progress' ? '作業中' : tab === 'done' ?
+                '完了'
+                : '返却済' }}
+              </a>
+            </li>
+          </ul>
+
+          <div class="d-flex justify-content-between mb-3 align-items-center">
+            <div class="small text-muted">全 {{ filteredItems.length }} 件</div>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-sort-down me-2 text-muted"></i>
+              <select v-model="sortOption" class="form-select form-select-sm w-auto border-0 bg-transparent fw-bold"
+                style="box-shadow: none;">
+                <option value="recDesc">受付No新しい順</option>
+                <option value="recAsc">受付No古い順</option>
+                <option value="dateDesc">期限の新しい順</option>
+                <option value="district">地区順</option>
+              </select>
             </div>
           </div>
 
-          <div v-if="filteredItems.length === 0" class="text-center py-5">
-            <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
-            <p class="text-muted">新規案件はありません</p>
-          </div>
-        </div>
-
-        <div v-else>
-          <div v-for="(item, index) in filteredItems" :key="item.id" class="task-card" :class="'status-'+currentTab"
-            @click="openEditModal(item)">
-
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center flex-wrap gap-2">
-                <span class="reception-no">#{{ item.receptionNo }}</span>
-                <span class="district-badge">{{ item.district }}</span>
-                <span class="address-text">{{ item.address }}</span>
-                <span class="room-no text-primary">{{ item.roomNo }}</span>
-              </div>
-              <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
-                @click.stop="window.open(item.imageUrl)">
-                <i class="bi bi-image-fill fs-5"></i>
-                <span class="small fw-bold">写真</span>
-              </div>
+          <div v-if="currentTab === 'new'">
+            <!-- すべての追加内容（単一セレクトボックス） -->
+            <div class="section-title">すべての追加内容</div>
+            <div class="dropdown mb-3">
+              <button class="status-select-toggle dropdown-toggle" :class="statusDropdownColor" type="button"
+                data-bs-toggle="dropdown">
+                {{ selectedStatusText }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-status">
+                <li>
+                  <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 0}" href="#"
+                    @click.prevent="selectStatus($event, 0, '本日の更新作業はまだしておりません')">
+                    本日の更新作業はまだしておりません
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 1}" href="#"
+                    @click.prevent="selectStatus($event, 1, '本日の鍵取り替え作業はありません')">
+                    本日の鍵取り替え作業はありません
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item py-2" :class="{'fw-bold': selectedStatusIndex === 2}" href="#"
+                    @click.prevent="selectStatus($event, 2, '以下の鍵が新規に出ました')">
+                    以下の鍵が新規に出ました
+                  </a>
+                </li>
+              </ul>
             </div>
 
-            <div class="info-line">
-              <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
-                  item.isNewEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
-                  item.isUsedEntrance }}</span></div>
-              <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
-                  item.storage
-                  }}</span></div>
-              <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
-                  }}</span></div>
-
-              <div class="small-meta text-end">
-                <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
-                  formatDateView(currentTab === 'done' ? item.completeDate : item.dueDate) }}</div>
-                <div v-if="currentTab === 'done'" class="info-item fw-bold text-dark"
-                  style="min-width: 3.5em; justify-content: flex-end;">
-                  <i class="bi bi-person-circle me-1"></i>{{ item.pic || '未' }}
+            <div v-for="item in filteredItems" :key="item.id" class="task-card status-new" @click="openEditModal(item)">
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                  <span class="reception-no">#{{ item.receptionNo }}</span>
+                  <span class="district-badge">{{ item.district }}</span>
+                  <span class="address-text">{{ item.address }}</span>
+                  <span class="room-no text-primary">{{ item.roomNo }}</span>
+                </div>
+                <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
+                  @click.stop="openImageProxied(item.imageUrl)">
+                  <i class="bi bi-image-fill fs-5"></i>
+                  <span class="small fw-bold">写真</span>
+                </div>
+              </div>
+              <div class="info-line">
+                <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
+                    item.isNewEntrance }}</span></div>
+                <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
+                    item.isUsedEntrance }}</span></div>
+                <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
+                    item.storage }}</span></div>
+                <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
+                    }}</span></div>
+                <div class="small-meta text-end">
+                  <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
+                    formatDateView(item.dueDate) }}</div>
                 </div>
               </div>
             </div>
+
+            <div v-if="filteredItems.length === 0" class="text-center py-5">
+              <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
+              <p class="text-muted">新規案件はありません</p>
+            </div>
           </div>
 
-          <div v-if="filteredItems.length === 0" class="text-center py-5">
-            <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
-            <p class="text-muted">案件はありません</p>
+          <div v-else>
+            <div v-for="(item, index) in filteredItems" :key="item.id" class="task-card" :class="'status-'+currentTab"
+              @click="openEditModal(item)">
+
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                  <span class="reception-no">#{{ item.receptionNo }}</span>
+                  <span class="district-badge">{{ item.district }}</span>
+                  <span class="address-text">{{ item.address }}</span>
+                  <span class="room-no text-primary">{{ item.roomNo }}</span>
+                </div>
+                <div v-if="item.imageUrl" class="text-primary d-flex align-items-center gap-1"
+                  @click.stop="window.open(item.imageUrl)">
+                  <i class="bi bi-image-fill fs-5"></i>
+                  <span class="small fw-bold">写真</span>
+                </div>
+              </div>
+
+              <div class="info-line">
+                <div class="info-item"><span class="info-label">新</span><span class="info-val">{{
+                    item.isNewEntrance }}</span></div>
+                <div class="info-item"><span class="info-label">古</span><span class="info-val">{{
+                    item.isUsedEntrance }}</span></div>
+                <div class="info-item"><span class="info-label">物</span><span class="info-val">{{
+                    item.storage
+                    }}</span></div>
+                <div class="info-item"><span class="info-label">PS</span><span class="info-val">{{ item.ps
+                    }}</span></div>
+
+                <div class="small-meta text-end">
+                  <div class="info-item"><i class="bi bi-calendar-event me-1"></i>{{
+                    formatDateView(currentTab === 'done' ? item.completeDate : item.dueDate) }}</div>
+                  <div v-if="currentTab === 'done'" class="info-item fw-bold text-dark"
+                    style="min-width: 3.5em; justify-content: flex-end;">
+                    <i class="bi bi-person-circle me-1"></i>{{ item.pic || '未' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="filteredItems.length === 0" class="text-center py-5">
+              <i class="bi bi-clipboard-x fs-1 text-light mb-3 d-block"></i>
+              <p class="text-muted">案件はありません</p>
+            </div>
+          </div>
+
+          <div class="version-tag">
+            dev1.0.0.20260202.1
           </div>
         </div>
 
-        <div class="version-tag">
-          dev1.0.0.20260130.4
-        </div>
-      </div>
-
-      <button class="btn-fab" @click="openAddModal">
-        <i class="bi bi-plus-lg"></i>
-      </button>
+        <button class="btn-fab" @click="openAddModal">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+      </div><!-- v-else (isAuthenticated) -->
 
       <!-- 新規登録モーダル -->
       <div class="modal fade" id="addModal" tabindex="-1">
@@ -904,6 +976,9 @@
     createApp({
       data() {
         return {
+          isAuthenticated: false,
+          inputPass: '',
+          passCode: '123',
           master: { districts: [], addressesByDistrict: {}, staffs: [], requesters: [] },
           currentTab: 'new', items: [], isLoading: true, isSyncing: false,
           sortOption: 'recDesc',
@@ -967,8 +1042,22 @@
           return colors[this.selectedStatusIndex] || 'btn-status-yellow';
         }
       },
-      mounted() { this.loadData(); },
+      mounted() {
+        if (sessionStorage.getItem('isKagiAuthRequest') === 'true') {
+          this.isAuthenticated = true;
+          this.loadData();
+        }
+      },
       methods: {
+        login() {
+          if (this.inputPass === this.passCode) {
+            this.isAuthenticated = true;
+            sessionStorage.setItem('isKagiAuthRequest', 'true');
+            this.loadData();
+          } else {
+            alert('パスワードが正しくありません');
+          }
+        },
         selectStatus(event, index, text) {
           this.selectedStatusIndex = index;
           this.selectedStatusText = text;

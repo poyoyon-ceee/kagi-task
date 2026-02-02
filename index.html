@@ -291,7 +291,7 @@
                 <input type="password" v-model="inputPass" class="form-control mb-3 text-center" placeholder="Password"
                     @keyup.enter="login">
                 <button @click="login" class="btn btn-save w-100 py-3">Login</button>
-                <div class="mt-4 version-tag text-center">dev1.0.0.20260115.3</div>
+                <div class="mt-4 version-tag text-center">dev1.0.0.20260202.1</div>
             </div>
         </div>
 
@@ -300,7 +300,7 @@
                 <div class="container d-flex justify-content-between align-items-center">
                     <div>
                         <h1 class="app-title">KeyExchange</h1>
-                        <span class="version-tag">dev1.0.0.20260115.3</span>
+                        <span class="version-tag">dev1.0.0.20260202.1</span>
                     </div>
                     <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="refreshData">
                         更新
@@ -410,7 +410,7 @@
         // 他のタブから「起動した」という通知を受け取った場合、自分が既に開いていれば応答する
         bc.onmessage = (event) => {
             if (event.data.type === 'QUERY_INSTANCE') {
-                bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260115.2' });
+                bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260202.1' });
             }
         };
 
@@ -419,7 +419,7 @@
                 return {
                     isAuthenticated: false,
                     inputPass: '',
-                    passCode: 'key1234',
+                    passCode: '000',
                     currentTab: 'new',
                     items: [],
                     isLoading: false,
@@ -446,7 +446,7 @@
                 bc.onmessage = (event) => {
                     // 他のタブから問い合わせが来た場合
                     if (event.data.type === 'QUERY_INSTANCE') {
-                        bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260115.2' });
+                        bc.postMessage({ type: 'INSTANCE_EXISTS', version: 'dev1.0.0.20260202.1' });
                     }
                     // 他のタブが既に存在するという応答が来た場合
                     else if (event.data.type === 'INSTANCE_EXISTS') {
